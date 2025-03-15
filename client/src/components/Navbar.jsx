@@ -1,35 +1,34 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
-function Navbar({ token, setToken }) {
+function Navbar({ token, setToken, setRole, role }) {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    setToken('');
     localStorage.removeItem('token');
-    localStorage.removeItem('username');
     localStorage.removeItem('role');
-    navigate('/signin');
+    setToken('');
+    setRole('');
+    navigate('/');
   };
 
   return (
-    <nav className="bg-blue-600 text-white p-4">
+    <nav>
       <div className="container flex justify-between items-center">
-        <h1 className="text-xl font-bold">QMaster</h1>
+        <Link to="/" className="text-xl font-bold">QMaster</Link>
         <div>
-          <a href="/" className="mr-4">Home</a>
-          <a href="/about" className="mr-4">About</a>
+          <Link to="/" className="mr-4">Home</Link>
+          <Link to="/about" className="mr-4">About</Link>
           {token ? (
             <>
-              {localStorage.getItem('role') === 'teacher' && <a href="/teacher" className="mr-4">Teacher</a>}
-              {localStorage.getItem('role') === 'student' && <a href="/student" className="mr-4">Student</a>}
-              <button onClick={handleLogout} className="bg-red-500 p-2 rounded">
-                Logout
-              </button>
+              {role === 'teacher' && <Link to="/teacher" className="mr-4">Teacher Dashboard</Link>}
+              {role === 'student' && <Link to="/student" className="mr-4">Student Dashboard</Link>}
+              {role === 'student' && <Link to="/student/results" className="mr-4">Results</Link>}
+              <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded">Logout</button>
             </>
           ) : (
             <>
-              <a href="/signin" className="mr-4">Sign In</a>
-              <a href="/signup">Sign Up</a>
+              <Link to="/signin" className="mr-4">Sign In</Link>
+              <Link to="/signup">Sign Up</Link>
             </>
           )}
         </div>

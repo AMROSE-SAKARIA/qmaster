@@ -1,12 +1,14 @@
 function About() {
-    return (
-      <div className="container min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="bg-white p-6 rounded shadow-md text-center">
-          <h2 className="text-2xl font-bold mb-4 text-blue-600">About QMaster</h2>
-          <p>This is a test management system built with React and Node.js.</p>
+  return (
+    <div className="app">
+      <div className="container">
+        <div className="card">
+          <h1>About QMaster</h1>
+          <p>QMaster helps teachers create tests from notes and PDFs, and students can join to test their knowledge.</p>
         </div>
       </div>
-    );
-  }
-  
-  export default About;
+    </div>
+  );
+}
+
+export default About;

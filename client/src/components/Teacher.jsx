@@ -22,7 +22,7 @@ function Teacher({ token }) {
     formData.append('descriptiveMarks', descriptiveMarks);
 
     try {
-      const res = await axios.post('http://localhost:5000/upload-content', formData, {
+      const res = await axios.post('http://localhost:5000/api/upload-content', formData, {
         headers: { 'authorization': token, 'Content-Type': 'multipart/form-data' },
       });
       setMessage(`Questions generated with token: ${res.data.token}`);
@@ -36,7 +36,7 @@ function Teacher({ token }) {
     const selectedMCQs = Array(5).fill().map((_, i) => ({ id: i + 1 })); // Placeholder
     const selectedDescriptive = Array(10).fill().map((_, i) => ({ id: i + 11 })); // Placeholder
     try {
-      const res = await axios.post('http://localhost:5000/teacher/create-test', {
+      const res = await axios.post('http://localhost:5000/api/teacher/create-test', {
         token: tokenResult,
         selectedMCQs,
         selectedDescriptive,

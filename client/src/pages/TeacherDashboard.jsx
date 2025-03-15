@@ -1,208 +1,316 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
-function TeacherDashboard({ token, setToken }) {
+function TeacherDashboard({ token, role }) {
+  const [inputType, setInputType] = useState('text'); // New state for input type
   const [textContent, setTextContent] = useState('');
   const [pdfFile, setPdfFile] = useState(null);
   const [numMCQs, setNumMCQs] = useState(5);
   const [numDescriptive, setNumDescriptive] = useState(3);
   const [mcqMarks, setMcqMarks] = useState(2);
   const [descriptiveMarks, setDescriptiveMarks] = useState(10);
-  const [message, setMessage] = useState('');
-  const [tokenResult, setTokenResult] = useState('');
+  const [desiredMCQs, setDesiredMCQs] = useState(5);
+  const [desiredDescriptive, setDesiredDescriptive] = useState(3);
+  const [tokenId, setTokenId] = useState('');
   const [questions, setQuestions] = useState({ mcqs: [], descriptive: [] });
   const [selectedMCQs, setSelectedMCQs] = useState([]);
   const [selectedDescriptive, setSelectedDescriptive] = useState([]);
-  const [results, setResults] = useState({ submissions: [], classAverage: 0 });
+  const [message, setMessage] = useState('');
+  const navigate = useNavigate();
+
+  // Redirect if not a teacher
+  if (role !== 'teacher') {
+    navigate('/');
+    return null;
+  }
 
   const handleUpload = async (e) => {
     e.preventDefault();
-    if (!textContent && !pdfFile) {
-      setMessage('Please provide text for MCQs or a PDF for descriptive questions');
-      return;
-    }
     const formData = new FormData();
-    formData.append('pdf', pdfFile);
-    formData.append('textContent', textContent);
+    formData.append('inputType', inputType); // Add inputType to form data
+
+    // Append the appropriate content based on inputType
+    if (inputType === 'text') {
+      if (!textContent.trim()) {
+        setMessage('Please provide text content');
+        return;
+      }
+      formData.append('textContent', textContent);
+    } else if (inputType === 'pdf') {
+      if (!pdfFile) {
+        setMessage('Please upload a PDF file');
+        return;
+      }
+      formData.append('pdf', pdfFile);
+    }
+
     formData.append('numMCQs', numMCQs);
     formData.append('numDescriptive', numDescriptive);
     formData.append('mcqMarks', mcqMarks);
     formData.append('descriptiveMarks', descriptiveMarks);
 
     try {
-      const res = await axios.post('http://localhost:5000/upload-content', formData, {
-        headers: { 'authorization': token, 'Content-Type': 'multipart/form-data' },
+      const res = await axios.post('http://localhost:5000/api/upload-content', formData, {
+        headers: { 
+          'Authorization': `Bearer ${token}`, 
+          'Content-Type': 'multipart/form-data' 
+        },
       });
-      setMessage(`Questions generated with token: ${res.data.token}`);
-      setTokenResult(res.data.token);
-      setQuestions({ mcqs: res.data.mcqs || [], descriptive: res.data.descriptiveQuestions || [] });
+      setTokenId(res.data.token);
+      setMessage('Content uploaded successfully');
     } catch (error) {
-      setMessage(`Upload failed: ${error.response?.data?.error || error.message || 'Network Error'}`);
+      setMessage(error.response?.data?.error || 'Upload failed');
     }
   };
 
   const fetchQuestions = async () => {
-    if (!tokenResult) return;
     try {
-      const res = await axios.get(`http://localhost:5000/teacher/questions/${tokenResult}`, {
-        headers: { 'authorization': token },
+      const res = await axios.get(`http://localhost:5000/api/teacher/questions/${tokenId}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
       });
-      setQuestions(res.data);
+      const { mcqs, descriptive } = res.data;
+      setQuestions({ mcqs, descriptive });
+
+      // Pre-select questions based on desired numbers
+      setSelectedMCQs(mcqs.slice(0, Math.min(desiredMCQs, mcqs.length)).map(q => q._id));
+      setSelectedDescriptive(descriptive.slice(0, Math.min(desiredDescriptive, descriptive.length)).map(q => q._id));
+
+      // Warn if there aren't enough questions
+      if (mcqs.length < desiredMCQs) {
+        setMessage(`Warning: Only ${mcqs.length} MCQs available, but ${desiredMCQs} requested.`);
+      }
+      if (descriptive.length < desiredDescriptive) {
+        setMessage(prev => prev ? `${prev} | Only ${descriptive.length} Descriptive questions available, but ${desiredDescriptive} requested.` : `Only ${descriptive.length} Descriptive questions available, but ${desiredDescriptive} requested.`);
+      } else {
+        setMessage('Questions fetched successfully');
+      }
     } catch (error) {
-      setMessage(`Failed to fetch questions: ${error.response?.data?.error || error.message || 'Network Error'}`);
+      setMessage(error.response?.data?.error || 'Failed to fetch questions');
     }
-  };
-
-  const handleSelectMCQ = (id) => {
-    setSelectedMCQs(prev => (prev.includes(id) ? prev.filter(x => x !== id) : prev.length < 5 ? [...prev, id] : prev));
-  };
-
-  const handleSelectDescriptive = (id) => {
-    setSelectedDescriptive(prev => (prev.includes(id) ? prev.filter(x => x !== id) : prev.length < 10 ? [...prev, id] : prev));
   };
 
   const handleCreateTest = async () => {
-    if (selectedMCQs.length !== 5 || selectedDescriptive.length !== 10) {
-      setMessage('Select exactly 5 MCQs and 10 descriptive questions');
+    // Validate the number of selected questions
+    if (selectedMCQs.length !== desiredMCQs) {
+      setMessage(`Please select exactly ${desiredMCQs} MCQs. Currently selected: ${selectedMCQs.length}`);
       return;
     }
+    if (selectedDescriptive.length !== desiredDescriptive) {
+      setMessage(`Please select exactly ${desiredDescriptive} Descriptive questions. Currently selected: ${selectedDescriptive.length}`);
+      return;
+    }
+
     try {
-      const res = await axios.post('http://localhost:5000/teacher/create-test', {
-        token: tokenResult,
+      const res = await axios.post('http://localhost:5000/api/teacher/create-test', {
+        token: tokenId,
         selectedMCQs: selectedMCQs.map(id => ({ id })),
         selectedDescriptive: selectedDescriptive.map(id => ({ id })),
-      }, { headers: { 'authorization': token } });
-      setMessage(`Test created with token: ${res.data.testToken}`);
+        desiredMCQs,
+        desiredDescriptive,
+      }, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      setMessage(`Test created! Token: ${res.data.testToken}`);
     } catch (error) {
-      setMessage(`Test creation failed: ${error.response?.data?.error || error.message || 'Network Error'}`);
+      setMessage(error.response?.data?.error || 'Failed to create test');
     }
   };
 
-  const fetchResults = async () => {
-    try {
-      const res = await axios.get('http://localhost:5000/teacher/results', { headers: { 'authorization': token } });
-      setResults(res.data);
-    } catch (error) {
-      setMessage(`Failed to fetch results: ${error.response?.data?.error || error.message || 'Network Error'}`);
-    }
+  const handleViewResults = () => {
+    navigate(`/leaderboard/${tokenId}`);
   };
-
-  useEffect(() => {
-    fetchQuestions();
-    fetchResults();
-  }, [tokenResult]);
 
   return (
-    <div className="container">
-      <h2 className="text-2xl font-bold mb-4 text-blue-600">Teacher Dashboard</h2>
-      <div className="bg-white p-6 rounded shadow-md mb-6">
-        <h3 className="text-xl font-semibold mb-4">Generate Questions</h3>
-        <form onSubmit={handleUpload} className="space-y-4">
-          <textarea
-            placeholder="Enter text for MCQs (max 3000 words)"
-            value={textContent}
-            onChange={(e) => setTextContent(e.target.value)}
-            maxLength={15000}
-            className="border p-2 w-full h-40 rounded"
-          />
-          <input
-            type="file"
-            accept="application/pdf"
-            onChange={(e) => setPdfFile(e.target.files[0])}
-            className="border p-2 w-full"
-          />
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              type="number"
-              value={numMCQs}
-              onChange={(e) => setNumMCQs(Math.min(100, e.target.value))}
-              placeholder="Number of MCQs"
-              className="border p-2 rounded"
-              min="1"
-            />
-            <input
-              type="number"
-              value={numDescriptive}
-              onChange={(e) => setNumDescriptive(Math.min(100, e.target.value))}
-              placeholder="Number of Descriptive"
-              className="border p-2 rounded"
-              min="1"
-            />
-            <input
-              type="number"
-              value={mcqMarks}
-              onChange={(e) => setMcqMarks(e.target.value)}
-              placeholder="MCQ Marks"
-              className="border p-2 rounded"
-              min="1"
-            />
-            <input
-              type="number"
-              value={descriptiveMarks}
-              onChange={(e) => setDescriptiveMarks(e.target.value)}
-              placeholder="Descriptive Marks"
-              className="border p-2 rounded"
-              min="1"
-            />
-          </div>
-          <button type="submit" className="bg-blue-500 text-white p-2 rounded w-full hover:bg-blue-600">
-            Upload & Generate Questions
-          </button>
-        </form>
-        {message && <p className={message.includes('failed') ? 'text-red-500' : 'text-green-500'}>{message}</p>}
-      </div>
+    <div className="app">
+      <div className="container">
+        <div className="card">
+          <h2>Teacher Dashboard</h2>
+          <h3>Upload Content</h3>
+          <form onSubmit={handleUpload}>
+            {/* Input Type Selection */}
+            <div className="mb-4">
+              <label className="block text-gray-700">Select Input Type:</label>
+              <select
+                value={inputType}
+                onChange={(e) => {
+                  setInputType(e.target.value);
+                  // Reset fields when switching input type
+                  setTextContent('');
+                  setPdfFile(null);
+                }}
+                className="mt-1 p-2 border rounded w-full"
+              >
+                <option value="text">Text</option>
+                <option value="pdf">PDF</option>
+              </select>
+            </div>
 
-      {tokenResult && (
-        <div className="bg-white p-6 rounded shadow-md mb-6">
-          <h3 className="text-xl font-semibold mb-4">Select Questions for Test</h3>
-          <div className="mb-4">
-            <h4 className="font-medium">MCQs (Select 5)</h4>
-            {questions.mcqs.map((q) => (
-              <div key={q._id} className="flex items-center space-x-2 mb-2">
-                <input
-                  type="checkbox"
-                  checked={selectedMCQs.includes(q._id)}
-                  onChange={() => handleSelectMCQ(q._id)}
-                  disabled={selectedMCQs.length >= 5 && !selectedMCQs.includes(q._id)}
+            {/* Conditional Input Fields */}
+            {inputType === 'text' ? (
+              <div className="mb-4">
+                <textarea
+                  value={textContent}
+                  onChange={(e) => setTextContent(e.target.value)}
+                  placeholder="Paste text for question generation (up to 3000 words)"
+                  className="w-full p-2 border rounded"
+                  rows="5"
                 />
-                <p>{q.question}</p>
               </div>
-            ))}
-          </div>
-          <div className="mb-4">
-            <h4 className="font-medium">Descriptive Questions (Select 10)</h4>
-            {questions.descriptive.map((q) => (
-              <div key={q._id} className="flex items-center space-x-2 mb-2">
+            ) : (
+              <div className="mb-4">
                 <input
-                  type="checkbox"
-                  checked={selectedDescriptive.includes(q._id)}
-                  onChange={() => handleSelectDescriptive(q._id)}
-                  disabled={selectedDescriptive.length >= 10 && !selectedDescriptive.includes(q._id)}
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setPdfFile(e.target.files[0])}
+                  className="w-full p-2 border rounded"
                 />
-                <p>{q.question}</p>
               </div>
-            ))}
-          </div>
-          <button
-            onClick={handleCreateTest}
-            className="bg-green-500 text-white p-2 rounded hover:bg-green-600"
-            disabled={selectedMCQs.length !== 5 || selectedDescriptive.length !== 10}
-          >
-            Create Test
-          </button>
+            )}
+
+            <div className="mb-4">
+              <input
+                type="number"
+                value={numMCQs}
+                onChange={(e) => setNumMCQs(e.target.value)}
+                placeholder="Number of MCQs"
+                className="w-full p-2 border rounded"
+                min="1"
+              />
+            </div>
+            <div className="mb-4">
+              <input
+                type="number"
+                value={numDescriptive}
+                onChange={(e) => setNumDescriptive(e.target.value)}
+                placeholder="Number of Descriptive Questions"
+                className="w-full p-2 border rounded"
+                min="1"
+              />
+            </div>
+            <div className="mb-4">
+              <input
+                type="number"
+                value={mcqMarks}
+                onChange={(e) => setMcqMarks(e.target.value)}
+                placeholder="Marks per MCQ"
+                className="w-full p-2 border rounded"
+                min="1"
+                step="0.5"
+              />
+            </div>
+            <div className="mb-4">
+              <input
+                type="number"
+                value={descriptiveMarks}
+                onChange={(e) => setDescriptiveMarks(e.target.value)}
+                placeholder="Marks per Descriptive"
+                className="w-full p-2 border rounded"
+                min="1"
+                step="0.5"
+              />
+            </div>
+            <button type="submit" className="bg-blue-500 text-white p-2 rounded">
+              Upload
+            </button>
+          </form>
+
+          {tokenId && (
+            <>
+              <h3 className="mt-4">Token: {tokenId}</h3>
+              <button onClick={fetchQuestions} className="bg-green-500 text-white p-2 rounded mt-2">
+                Fetch Questions
+              </button>
+              {questions.mcqs.length > 0 && (
+                <>
+                  <h4 className="mt-4">MCQs (Available: {questions.mcqs.length})</h4>
+                  {questions.mcqs.map((q, index) => (
+                    <div key={q._id} className="flex items-center mb-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedMCQs.includes(q._id)}
+                        onChange={() => {
+                          setSelectedMCQs(prev => {
+                            if (prev.includes(q._id)) {
+                              return prev.filter(id => id !== q._id);
+                            } else if (prev.length < desiredMCQs) {
+                              return [...prev, q._id];
+                            }
+                            return prev;
+                          });
+                        }}
+                        className="mr-2"
+                      />
+                      <span>{index + 1}. {q.question}</span>
+                    </div>
+                  ))}
+                </>
+              )}
+              {questions.descriptive.length > 0 && (
+                <>
+                  <h4 className="mt-4">Descriptive Questions (Available: {questions.descriptive.length})</h4>
+                  {questions.descriptive.map((q, index) => (
+                    <div key={q._id} className="flex items-center mb-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedDescriptive.includes(q._id)}
+                        onChange={() => {
+                          setSelectedDescriptive(prev => {
+                            if (prev.includes(q._id)) {
+                              return prev.filter(id => id !== q._id);
+                            } else if (prev.length < desiredDescriptive) {
+                              return [...prev, q._id];
+                            }
+                            return prev;
+                          });
+                        }}
+                        className="mr-2"
+                      />
+                      <span>{index + 1}. {q.question}</span>
+                    </div>
+                  ))}
+                </>
+              )}
+              <div className="mt-4">
+                <label className="block text-gray-700">Desired MCQs for Test: </label>
+                <input
+                  type="number"
+                  value={desiredMCQs}
+                  onChange={(e) => {
+                    const value = Number(e.target.value);
+                    setDesiredMCQs(value);
+                    setSelectedMCQs(questions.mcqs.slice(0, Math.min(value, questions.mcqs.length)).map(q => q._id));
+                  }}
+                  placeholder="Desired MCQs for Test"
+                  className="w-full p-2 border rounded"
+                  min="1"
+                />
+              </div>
+              <div className="mt-4">
+                <label className="block text-gray-700">Desired Descriptive for Test: </label>
+                <input
+                  type="number"
+                  value={desiredDescriptive}
+                  onChange={(e) => {
+                    const value = Number(e.target.value);
+                    setDesiredDescriptive(value);
+                    setSelectedDescriptive(questions.descriptive.slice(0, Math.min(value, questions.descriptive.length)).map(q => q._id));
+                  }}
+                  placeholder="Desired Descriptive for Test"
+                  className="w-full p-2 border rounded"
+                  min="1"
+                />
+              </div>
+              <button onClick={handleCreateTest} className="bg-blue-500 text-white p-2 rounded mt-4">
+                Create Test
+              </button>
+              <button onClick={handleViewResults} className="bg-gray-500 text-white p-2 rounded mt-4 ml-2">
+                View Results
+              </button>
+            </>
+          )}
+          {message && <p className={message.includes('success') ? 'text-green-500' : 'text-red-500'}>{message}</p>}
         </div>
-      )}
-
-      <div className="bg-white p-6 rounded shadow-md">
-        <h3 className="text-xl font-semibold mb-4">Results</h3>
-        <p>Average Score: {results.classAverage.toFixed(2)}</p>
-        <ul>
-          {results.submissions.map((sub) => (
-            <li key={sub._id} className="mb-2">
-              {sub.studentName}: {sub.score}/{sub.totalMarks}
-            </li>
-          ))}
-        </ul>
       </div>
     </div>
   );

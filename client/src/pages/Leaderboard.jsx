@@ -1,32 +1,63 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
 import axios from 'axios';
+import { useParams, useNavigate } from 'react-router-dom';
 
-function Leaderboard({ token }) {
-  const { token: testToken } = useParams();
+function Leaderboard({ token, role }) {
   const [leaderboard, setLeaderboard] = useState({ submissions: [], classAverage: 0, totalQuestions: 0 });
+  const [message, setMessage] = useState('');
+  const { token: testToken } = useParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (testToken) {
-      axios.get(`http://localhost:5000/leaderboard/${testToken}`, { headers: { 'authorization': token } })
-        .then(res => setLeaderboard(res.data))
-        .catch(err => console.error('Failed to fetch leaderboard:', err));
-    }
-  }, [testToken, token]);
+    const fetchLeaderboard = async () => {
+      try {
+        const res = await axios.get(`http://localhost:5000/api/leaderboard/${testToken}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        setLeaderboard(res.data);
+      } catch (error) {
+        setMessage(error.response?.data?.error || 'Failed to fetch leaderboard');
+      }
+    };
+    fetchLeaderboard();
+  }, [token, testToken]);
 
   return (
-    <div className="container">
-      <h2 className="text-2xl font-bold mb-4 text-blue-600">Leaderboard - Token: {testToken}</h2>
-      <div className="bg-white p-6 rounded shadow-md">
-        <p>Average Score: {leaderboard.classAverage.toFixed(2)}</p>
-        <p>Total Questions: {leaderboard.totalQuestions}</p>
-        <ol>
-          {leaderboard.submissions.map((sub, index) => (
-            <li key={sub._id} className="mb-2">
-              {index + 1}. {sub.studentName}: {sub.score}/{sub.totalMarks}
-            </li>
-          ))}
-        </ol>
+    <div className="app">
+      <div className="container">
+        <div className="card">
+          <h2>Leaderboard (Token: {testToken})</h2>
+          <p>Class Average: {leaderboard.classAverage}</p>
+          <p>Total Questions: {leaderboard.totalQuestions}</p>
+          {leaderboard.submissions.length > 0 ? (
+            <table>
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Student</th>
+                  <th>Score</th>
+                  <th>Total Marks</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaderboard.submissions.map((sub, index) => (
+                  <tr key={index}>
+                    <td>{index + 1}</td>
+                    <td>{sub.studentName}</td>
+                    <td>{sub.score}</td>
+                    <td>{sub.totalMarks}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p>No submissions yet.</p>
+          )}
+          {message && <p className="error">{message}</p>}
+          {role === 'teacher' && (
+            <button onClick={() => navigate(`/teacher/results/${testToken}`)}>View Detailed Results</button>
+          )}
+        </div>
       </div>
     </div>
   );

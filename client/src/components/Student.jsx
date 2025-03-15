@@ -10,14 +10,14 @@ function Student({ token }) {
 
   useEffect(() => {
     if (tokenInput) {
-      axios.post('http://localhost:5000/student/join', { token: tokenInput }, { headers: { 'authorization': token } })
+      axios.post('http://localhost:5000/api/student/join', { token: tokenInput }, { headers: { 'authorization': token } })
         .then(res => setQuestions(res.data))
         .catch(err => setMessage(`Join failed: ${err.response?.data?.error || err.message}`));
     }
   }, [tokenInput, token]);
 
   const handleSubmit = () => {
-    axios.post('http://localhost:5000/student/submit', {
+    axios.post('http://localhost:5000/api/student/submit', {
       token: tokenInput,
       answers,
       studentName: localStorage.getItem('username'),

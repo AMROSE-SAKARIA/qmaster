@@ -1,57 +1,52 @@
 import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 
-function Signin({ setToken }) {
+function Signin({ setToken, setRole }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
   const handleSignin = async (e) => {
     e.preventDefault();
-    setError('');
     try {
-      const res = await axios.post('http://localhost:5000/login', { username, password }, { timeout: 5000 });
-      setToken(res.data.token);
+      const res = await axios.post('http://localhost:5000/api/login', { username, password });
       localStorage.setItem('token', res.data.token);
-      localStorage.setItem('username', username);
       localStorage.setItem('role', res.data.role);
+      setToken(res.data.token);
+      setRole(res.data.role);
       navigate(res.data.role === 'teacher' ? '/teacher' : '/student');
     } catch (error) {
-      setError(`Signin failed: ${error.response?.data?.error || error.message || 'Network Error'}`);
+      setMessage(error.response?.data?.error || 'Sign in failed');
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-6 rounded shadow-md w-96">
-        <h2 className="text-2xl font-bold mb-4 text-blue-600">Sign In</h2>
-        {error && <p className="text-red-500 mb-4">{error}</p>}
-        <form onSubmit={handleSignin} className="space-y-4">
-          <input
-            type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="border p-2 w-full rounded"
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="border p-2 w-full rounded"
-            required
-          />
-          <button type="submit" className="bg-blue-500 text-white p-2 w-full rounded hover:bg-blue-600">
-            Sign In
-          </button>
-        </form>
-        <p className="mt-2 text-center">
-          Don't have an account? <a href="/signup" className="text-blue-500">Sign Up</a>
-        </p>
+    <div className="app">
+      <div className="container">
+        <div className="card">
+          <h2>Sign In</h2>
+          <form onSubmit={handleSignin}>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Username"
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+            />
+            <button type="submit">Sign In</button>
+          </form>
+          {message && <p className="error">{message}</p>}
+          <p>
+            Don't have an account? <Link to="/signup">Sign Up</Link>
+          </p>
+        </div>
       </div>
     </div>
   );
