@@ -102,20 +102,19 @@ function QuestionPool({ token }) {
                   </button>
                 </div>
                 {selectedQuestion === q && (
-                  <div className="ml-6 mt-2 p-2 border rounded">
+                  <div className="ml-6 mt-2 p-2 border rounded" dangerouslySetInnerHTML={{ __html: `
                     <p><strong>Options:</strong></p>
                     <ul>
-                      {q.options.map((opt, index) => (
-                        <li key={index}>
-                          {String.fromCharCode(97 + index)}. {opt}
-                        </li>
-                      ))}
+                      ${formatOptions(q.options).replace(/\n/g, '<br />')}
                     </ul>
-                    <p><strong>Correct Answer:</strong> {q.correctAnswer}</p>
-                    <p><strong>Context:</strong> {q.context}</p>
-                    <p><strong>Difficulty:</strong> {q.difficulty}</p>
-                    
-                  </div>
+                    <p><strong>Correct Answer:</strong> ${q.correctAnswer}</p>
+                    <p><strong>Context:</strong> ${q.context}</p>
+                    <p><strong>Difficulty:</strong> ${q.difficulty}</p>
+                    <button onClick={() => setSelectedQuestion(null)} className="mt-2 bg-gray-500 text-white p-1 rounded flex items-center space-x-1">
+                      <FaTimes />
+                      <span>Close</span>
+                    </button>
+                  `}} />
                 )}
               </div>
             ))}
@@ -140,8 +139,14 @@ function QuestionPool({ token }) {
                   <div className="ml-6 mt-2 p-2 border rounded">
                     <p><strong>Answer:</strong> {q.correctAnswer}</p>
                     <p><strong>Context:</strong> {q.context}</p>
-                    <p><strong>Difficulty:</strong> {q.difficulty}</p>
-                    
+                    <p><strong>Difficulty:</strong> ${q.difficulty}</p>
+                    <button
+                      onClick={() => setSelectedQuestion(null)}
+                      className="mt-2 bg-gray-500 text-white p-1 rounded flex items-center space-x-1"
+                    >
+                      <FaTimes />
+                      <span>Close</span>
+                    </button>
                   </div>
                 )}
               </div>

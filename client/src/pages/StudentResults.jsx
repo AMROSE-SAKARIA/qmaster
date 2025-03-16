@@ -22,21 +22,20 @@ function StudentResults({ token, role }) {
   }, [token]);
 
   return (
-    <div className="app">
-      <div className="container">
-        <div className="card">
-          <h2 className="text-center text-2xl font-bold">Your Test Results</h2>
+    <div className="min-h-screen bg-gray-100">
+      <div className="container mx-auto p-4">
+        <div className="bg-white p-6 rounded-lg shadow-lg">
+          <h2 className="text-center text-2xl font-bold mb-6">Your Test Results</h2>
           {results.length === 0 ? (
-            <p>No results available.</p>
+            <p className="text-center text-gray-500">No results available.</p>
           ) : (
             results.map((result, index) => (
-              <div key={index} className="mb-4 p-4 border rounded">
+              <div key={index} className="mb-4 p-4 border rounded shadow">
                 <h3 className="font-bold">Test {index + 1}</h3>
-                <p><strong>Token:</strong> {result.token}</p>
-                <p><strong>Score:</strong> {result.score}/{result.totalMarks}</p>
-                <p><strong>Submitted At:</strong> {new Date(result.submittedAt).toLocaleString()}</p>
+                <p className="mb-1"><strong>Token:</strong> {result.token}</p>
+                <p className="mb-1"><strong>Score:</strong> {result.score}/{result.totalMarks}</p>
+                <p className="mb-2"><strong>Submitted At:</strong> {new Date(result.submittedAt).toLocaleString()}</p>
 
-                {/* Display MCQ Answers */}
                 {result.questions?.mcq?.length > 0 && (
                   <>
                     <h4 className="mt-4 font-medium">MCQs</h4>
@@ -55,7 +54,6 @@ function StudentResults({ token, role }) {
                   </>
                 )}
 
-                {/* Display Descriptive Answers */}
                 {result.questions?.descriptive?.length > 0 && (
                   <>
                     <h4 className="mt-4 font-medium">Descriptive Questions</h4>
@@ -75,7 +73,7 @@ function StudentResults({ token, role }) {
             ))
           )}
           <div className="flex justify-center">
-            <button onClick={() => navigate('/student')} className="bg-gray-500 text-white p-2 rounded mt-4">
+            <button onClick={() => navigate('/student')} className="mt-4 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
               Back to Dashboard
             </button>
           </div>

@@ -34,13 +34,12 @@ function Profile({ token, role }) {
       const res = await axios.put('http://localhost:5000/api/profile/update', {
         realName: newRealName,
         email: newEmail,
-        password: newPassword || undefined, // Only send if provided
+        password: newPassword || undefined,
       }, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       setMessage(res.data.message);
       setIsEditing(false);
-      // Refresh profile data
       const updatedProfile = await axios.get('http://localhost:5000/api/profile', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -57,7 +56,7 @@ function Profile({ token, role }) {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         setMessage(res.data.message);
-        navigate('/signin'); // Redirect to sign-in after deletion
+        navigate('/signin');
       } catch (error) {
         setMessage(error.response?.data?.error || 'Failed to delete profile');
       }
@@ -68,31 +67,31 @@ function Profile({ token, role }) {
     navigate(`/teacher/question-history/${token}`);
   };
 
-  if (!profile) return <div>Loading...</div>;
+  if (!profile) return <div className="text-center p-4">Loading...</div>;
 
   return (
-    <div className="app">
-      <div className="container">
-        <div className="card">
-          <h2>User Profile</h2>
+    <div className="min-h-screen bg-gray-100">
+      <div className="container mx-auto p-4">
+        <div className="bg-white p-6 rounded-lg shadow-lg">
+          <h2 className="text-2xl font-bold mb-4">User Profile</h2>
           {!isEditing ? (
             <>
-              <p><strong>Username:</strong> {profile.username}</p>
-              <p><strong>Email:</strong> {profile.email}</p>
-              <p><strong>Real Name:</strong> {profile.realName}</p>
-              <p><strong>Role:</strong> {profile.role}</p>
+              <p className="mb-2"><strong>Username:</strong> {profile.username}</p>
+              <p className="mb-2"><strong>Email:</strong> {profile.email}</p>
+              <p className="mb-2"><strong>Real Name:</strong> {profile.realName}</p>
+              <p className="mb-4"><strong>Role:</strong> {profile.role}</p>
               {role === 'teacher' && profile.conductedTests.length > 0 && (
                 <div>
-                  <h4>Conducted Tests</h4>
+                  <h4 className="mt-4 font-medium">Conducted Tests</h4>
                   {profile.conductedTests.map((test, index) => (
-                    <div key={index} className="mb-2">
+                    <div key={index} className="mb-2 p-2 border rounded">
                       <p>
-                        <strong>Token:</strong> {test.token}, <strong>Subject:</strong> {test.subject || 'General'}, 
-                        <strong> Date:</strong> {new Date(test.createdAt).toLocaleString()}, 
+                        <strong>Token:</strong> {test.token}, <strong>Subject:</strong> {test.subject || 'General'},
+                        <strong> Date:</strong> {new Date(test.createdAt).toLocaleString()},
                         <strong> MCQs:</strong> {test.numMCQs}, <strong> Descriptive:</strong> {test.numDescriptive}
                         <button
                           onClick={() => handleViewPerformance(test.token)}
-                          className="ml-2 bg-blue-500 text-white p-1 rounded text-sm flex items-center space-x-1"
+                          className="ml-2 bg-blue-500 text-white px-2 py-1 rounded text-sm flex items-center space-x-1 hover:bg-blue-600"
                         >
                           <FaEye />
                           <span>View Performance</span>
@@ -104,24 +103,28 @@ function Profile({ token, role }) {
               )}
               {role === 'student' && profile.attendedTests.length > 0 && (
                 <div>
-                  <h4>Attended Tests</h4>
+                  <h4 className="mt-4 font-medium">Attended Tests</h4>
                   {profile.attendedTests.map((test, index) => (
-                    <div key={index} className="mb-2">
+                    <div key={index} className="mb-2 p-2 border rounded">
                       <p>
-                        <strong>Token:</strong> {test.token}, 
-                        <strong> Date:</strong> {new Date(test.submittedAt).toLocaleString()}, 
+                        <strong>Token:</strong> {test.token},
+                        <strong> Date:</strong> {new Date(test.submittedAt).toLocaleString()},
                         <strong> Score:</strong> {test.score}/{test.totalMarks}
                       </p>
                     </div>
                   ))}
                 </div>
               )}
-              <button onClick={() => setIsEditing(true)} className="bg-blue-500 text-white p-2 rounded mt-4 mr-2">
-                <FaEdit /> Edit Profile
-              </button>
-              <button onClick={handleDeleteProfile} className="bg-red-500 text-white p-2 rounded mt-4">
-                <FaTrash /> Delete Profile
-              </button>
+              <div className="flex space-x-2 mt-4">
+                <button onClick={() => setIsEditing(true)} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center space-x-1">
+                  <FaEdit />
+                  <span>Edit Profile</span>
+                </button>
+                <button onClick={handleDeleteProfile} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 flex items-center space-x-1">
+                  <FaTrash />
+                  <span>Delete Profile</span>
+                </button>
+              </div>
             </>
           ) : (
             <form onSubmit={handleUpdateProfile}>
@@ -132,7 +135,7 @@ function Profile({ token, role }) {
                   id="newRealName"
                   value={newRealName}
                   onChange={(e) => setNewRealName(e.target.value)}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div className="mb-4">
@@ -142,7 +145,7 @@ function Profile({ token, role }) {
                   id="newEmail"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div className="mb-4">
@@ -152,22 +155,22 @@ function Profile({ token, role }) {
                   id="newPassword"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div className="flex justify-center space-x-4">
-                <button type="submit" className="bg-blue-500 text-white p-2 rounded flex items-center space-x-2">
+                <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center space-x-1">
                   <FaEdit />
                   <span>Save Changes</span>
                 </button>
-                <button type="button" onClick={() => setIsEditing(false)} className="bg-gray-500 text-white p-2 rounded">
+                <button type="button" onClick={() => setIsEditing(false)} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
                   Cancel
                 </button>
               </div>
             </form>
           )}
           {message && <p className={`text-center mt-4 ${message.includes('success') ? 'text-green-500' : 'text-red-500'}`}>{message}</p>}
-          <button onClick={() => navigate('/')} className="bg-gray-500 text-white p-2 rounded mt-4">
+          <button onClick={() => navigate('/')} className="mt-4 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
             Back
           </button>
         </div>

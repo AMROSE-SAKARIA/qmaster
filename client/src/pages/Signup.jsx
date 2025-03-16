@@ -55,9 +55,9 @@ function Signup() {
   };
 
   return (
-    <div className="container">
-      <div className="card">
-        <h2 className="text-center">{isVerifying ? 'Verify OTP' : 'Register'}</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <h2 className="text-2xl font-bold text-center mb-6">{isVerifying ? 'Verify OTP' : 'Register'}</h2>
         {isVerifying ? (
           <form onSubmit={handleVerifyOtp}>
             <div className="mb-4">
@@ -68,11 +68,11 @@ function Signup() {
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 placeholder="Enter OTP"
-                className="w-full"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div className="flex justify-center">
-              <button type="submit" className="bg-blue-500 flex items-center space-x-2">
+              <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center space-x-2">
                 <FaKey />
                 <span>Verify OTP</span>
               </button>
@@ -88,7 +88,7 @@ function Signup() {
                 value={realName}
                 onChange={(e) => setRealName(e.target.value)}
                 placeholder="Real Name"
-                className="w-full"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div className="mb-4">
@@ -99,7 +99,7 @@ function Signup() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Username"
-                className="w-full"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div className="mb-4">
@@ -110,7 +110,7 @@ function Signup() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
-                className="w-full"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div className="mb-4">
@@ -121,7 +121,7 @@ function Signup() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm Password"
-                className="w-full"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div className="mb-4">
@@ -132,7 +132,7 @@ function Signup() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Email"
-                className="w-full"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div className="mb-4">
@@ -141,7 +141,7 @@ function Signup() {
                 id="role"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="w-full"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Select Role</option>
                 <option value="student">Student</option>
@@ -149,18 +149,22 @@ function Signup() {
               </select>
             </div>
             <div className="flex justify-center space-x-4">
-              <button type="submit" className="bg-green-500 flex items-center space-x-2">
+              <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center space-x-2">
                 <FaUserPlus />
                 <span>Register</span>
               </button>
-              <button type="button" onClick={() => navigate('/signin')} className="bg-blue-500 flex items-center space-x-2">
+              <button type="button" onClick={() => navigate('/signin')} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center space-x-2">
                 <FaSignInAlt />
                 <span>Go to Login</span>
               </button>
             </div>
+            {message && (
+              <p className={`text-center mt-4 ${message.includes('success') ? 'text-green-500' : 'text-red-500'}`}>
+                {message}
+              </p>
+            )}
           </form>
         )}
-        {message && <p className={`text-center mt-4 ${message.includes('success') ? 'text-green-500' : 'text-red-500'}`}>{message}</p>}
       </div>
     </div>
   );

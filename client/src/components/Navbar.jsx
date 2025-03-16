@@ -7,6 +7,10 @@ function Navbar({ token, setToken, setRole, role, tokenId }) {
   const handleLogout = () => {
     setToken('');
     setRole('');
+    localStorage.removeItem('teacherDashboardState'); // Clear persisted state on logout
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('latestToken');
     navigate('/');
   };
 
@@ -14,7 +18,7 @@ function Navbar({ token, setToken, setRole, role, tokenId }) {
     <nav className="bg-gray-800 text-white p-4">
       <div className="container mx-auto flex justify-between items-center">
         <Link to="/" className="text-xl font-bold">QMaster</Link>
-        <div className="hidden md:flex space-x-6 text-lg font-medium">
+        <div className="flex space-x-6 text-lg font-medium">
           <Link to="/about" className="hover:underline">About</Link>
           {token ? (
             <>
@@ -24,7 +28,7 @@ function Navbar({ token, setToken, setRole, role, tokenId }) {
                   {tokenId && (
                     <>
                       <Link to={`/leaderboard/${tokenId}`} className="hover:underline">Leaderboard</Link>
-                      <Link to={`/submissions/${tokenId}`} className="hover:underline">Submissions</Link>
+                      <Link to={`/submissionsreview/${tokenId}`} className="hover:underline">Submissions</Link>
                     </>
                   )}
                 </>

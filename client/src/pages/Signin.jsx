@@ -12,7 +12,7 @@ function Signin({ setToken, setRole }) {
   const [forgotOtp, setForgotOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [step, setStep] = useState('send-otp'); // Manage flow: 'send-otp' or 'enter-otp'
+  const [step, setStep] = useState('send-otp');
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -24,6 +24,8 @@ function Signin({ setToken, setRole }) {
       });
       setToken(res.data.token);
       setRole(res.data.role);
+      localStorage.setItem('token', res.data.token); // Persist token
+      localStorage.setItem('role', res.data.role);   // Persist role
       setMessage('Login successful');
       navigate('/');
     } catch (error) {
@@ -38,7 +40,7 @@ function Signin({ setToken, setRole }) {
         username: forgotUsername,
       });
       setMessage(res.data.message);
-      setStep('enter-otp'); // Move to OTP entry step
+      setStep('enter-otp');
     } catch (error) {
       setMessage(error.response?.data?.error || 'Failed to send OTP');
     }
@@ -63,16 +65,16 @@ function Signin({ setToken, setRole }) {
       setForgotOtp('');
       setNewPassword('');
       setConfirmPassword('');
-      setStep('send-otp'); // Reset to initial step
+      setStep('send-otp');
     } catch (error) {
       setMessage(error.response?.data?.error || 'Password reset failed');
     }
   };
 
   return (
-    <div className="container">
-      <div className="card">
-        <h2 className="text-center">Login</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <h2 className="text-2xl font-bold text-center mb-6">Login</h2>
         {!forgotPassword ? (
           <form onSubmit={handleLogin}>
             <div className="mb-4">
@@ -83,7 +85,7 @@ function Signin({ setToken, setRole }) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Username"
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div className="mb-4">
@@ -94,20 +96,23 @@ function Signin({ setToken, setRole }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div className="flex justify-center space-x-4">
-              <button type="submit" className="bg-blue-500 text-white p-2 rounded flex items-center space-x-2">
+              <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center space-x-2">
                 <FaSignInAlt />
                 <span>Login</span>
               </button>
-              <button type="button" onClick={() => navigate('/signup')} className="bg-green-500 text-white p-2 rounded flex items-center space-x-2">
+              <button type="button" onClick={() => navigate('/signup')} className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center space-x-2">
                 <FaUserPlus />
                 <span>Go to Register</span>
               </button>
             </div>
-            <p className="text-center mt-2 text-blue-500 cursor-pointer" onClick={() => setForgotPassword(true)}>
+            <p
+              className="text-center mt-4 text-blue-500 cursor-pointer hover:underline"
+              onClick={() => setForgotPassword(true)}
+            >
               Forgot Password?
             </p>
           </form>
@@ -121,12 +126,12 @@ function Signin({ setToken, setRole }) {
                 value={forgotUsername}
                 onChange={(e) => setForgotUsername(e.target.value)}
                 placeholder="Username"
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             {step === 'send-otp' && (
               <div className="flex justify-center">
-                <button type="submit" className="bg-blue-500 text-white p-2 rounded flex items-center space-x-2">
+                <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center space-x-2">
                   <FaKey />
                   <span>Send OTP</span>
                 </button>
@@ -142,7 +147,7 @@ function Signin({ setToken, setRole }) {
                     value={forgotOtp}
                     onChange={(e) => setForgotOtp(e.target.value)}
                     placeholder="Enter OTP"
-                    className="w-full p-2 border rounded"
+                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div className="mb-4">
@@ -153,7 +158,7 @@ function Signin({ setToken, setRole }) {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="New Password"
-                    className="w-full p-2 border rounded"
+                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div className="mb-4">
@@ -164,28 +169,35 @@ function Signin({ setToken, setRole }) {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirm Password"
-                    className="w-full p-2 border rounded"
+                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div className="flex justify-center">
-                  <button type="submit" className="bg-blue-500 text-white p-2 rounded flex items-center space-x-2">
+                  <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center space-x-2">
                     <FaKey />
                     <span>Reset Password</span>
                   </button>
                 </div>
               </>
             )}
-            <p className="text-center mt-2 text-blue-500 cursor-pointer" onClick={() => {
-              setForgotPassword(false);
-              setForgotUsername('');
-              setForgotOtp('');
-              setNewPassword('');
-              setConfirmPassword('');
-              setStep('send-otp');
-            }}>
+            <p
+              className="text-center mt-4 text-blue-500 cursor-pointer hover:underline"
+              onClick={() => {
+                setForgotPassword(false);
+                setForgotUsername('');
+                setForgotOtp('');
+                setNewPassword('');
+                setConfirmPassword('');
+                setStep('send-otp');
+              }}
+            >
               Back to Login
             </p>
-            {message && <p className={`text-center mt-4 ${message.includes('success') ? 'text-green-500' : 'text-red-500'}`}>{message}</p>}
+            {message && (
+              <p className={`text-center mt-4 ${message.includes('success') ? 'text-green-500' : 'text-red-500'}`}>
+                {message}
+              </p>
+            )}
           </form>
         )}
       </div>
