@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 function TeacherDashboard({ token, role }) {
-  const [inputType, setInputType] = useState('text'); // New state for input type
+  const [inputType, setInputType] = useState('text');
   const [textContent, setTextContent] = useState('');
   const [pdfFile, setPdfFile] = useState(null);
   const [numMCQs, setNumMCQs] = useState(5);
@@ -17,6 +17,9 @@ function TeacherDashboard({ token, role }) {
   const [selectedMCQs, setSelectedMCQs] = useState([]);
   const [selectedDescriptive, setSelectedDescriptive] = useState([]);
   const [message, setMessage] = useState('');
+  const [selectedQuestion, setSelectedQuestion] = useState(null); // New state for viewing question details
+  const [showTokenModal, setShowTokenModal] = useState(false); // For token pop-up
+  const [generatedToken, setGeneratedToken] = useState(''); // For token pop-up
   const navigate = useNavigate();
 
   // Redirect if not a teacher
@@ -28,9 +31,8 @@ function TeacherDashboard({ token, role }) {
   const handleUpload = async (e) => {
     e.preventDefault();
     const formData = new FormData();
-    formData.append('inputType', inputType); // Add inputType to form data
+    formData.append('inputType', inputType);
 
-    // Append the appropriate content based on inputType
     if (inputType === 'text') {
       if (!textContent.trim()) {
         setMessage('Please provide text content');
@@ -58,6 +60,8 @@ function TeacherDashboard({ token, role }) {
         },
       });
       setTokenId(res.data.token);
+      setGeneratedToken(res.data.token); // Store the token for the modal
+      setShowTokenModal(true); // Show the token pop-up
       setMessage('Content uploaded successfully');
     } catch (error) {
       setMessage(error.response?.data?.error || 'Upload failed');
@@ -72,11 +76,9 @@ function TeacherDashboard({ token, role }) {
       const { mcqs, descriptive } = res.data;
       setQuestions({ mcqs, descriptive });
 
-      // Pre-select questions based on desired numbers
       setSelectedMCQs(mcqs.slice(0, Math.min(desiredMCQs, mcqs.length)).map(q => q._id));
       setSelectedDescriptive(descriptive.slice(0, Math.min(desiredDescriptive, descriptive.length)).map(q => q._id));
 
-      // Warn if there aren't enough questions
       if (mcqs.length < desiredMCQs) {
         setMessage(`Warning: Only ${mcqs.length} MCQs available, but ${desiredMCQs} requested.`);
       }
@@ -91,7 +93,6 @@ function TeacherDashboard({ token, role }) {
   };
 
   const handleCreateTest = async () => {
-    // Validate the number of selected questions
     if (selectedMCQs.length !== desiredMCQs) {
       setMessage(`Please select exactly ${desiredMCQs} MCQs. Currently selected: ${selectedMCQs.length}`);
       return;
@@ -128,14 +129,12 @@ function TeacherDashboard({ token, role }) {
           <h2>Teacher Dashboard</h2>
           <h3>Upload Content</h3>
           <form onSubmit={handleUpload}>
-            {/* Input Type Selection */}
             <div className="mb-4">
               <label className="block text-gray-700">Select Input Type:</label>
               <select
                 value={inputType}
                 onChange={(e) => {
                   setInputType(e.target.value);
-                  // Reset fields when switching input type
                   setTextContent('');
                   setPdfFile(null);
                 }}
@@ -146,7 +145,6 @@ function TeacherDashboard({ token, role }) {
               </select>
             </div>
 
-            {/* Conditional Input Fields */}
             {inputType === 'text' ? (
               <div className="mb-4">
                 <textarea
@@ -225,23 +223,51 @@ function TeacherDashboard({ token, role }) {
                 <>
                   <h4 className="mt-4">MCQs (Available: {questions.mcqs.length})</h4>
                   {questions.mcqs.map((q, index) => (
-                    <div key={q._id} className="flex items-center mb-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedMCQs.includes(q._id)}
-                        onChange={() => {
-                          setSelectedMCQs(prev => {
-                            if (prev.includes(q._id)) {
-                              return prev.filter(id => id !== q._id);
-                            } else if (prev.length < desiredMCQs) {
-                              return [...prev, q._id];
-                            }
-                            return prev;
-                          });
-                        }}
-                        className="mr-2"
-                      />
-                      <span>{index + 1}. {q.question}</span>
+                    <div key={q._id} className="mb-2">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedMCQs.includes(q._id)}
+                          onChange={() => {
+                            setSelectedMCQs(prev => {
+                              if (prev.includes(q._id)) {
+                                return prev.filter(id => id !== q._id);
+                              } else if (prev.length < desiredMCQs) {
+                                return [...prev, q._id];
+                              }
+                              return prev;
+                            });
+                          }}
+                          className="mr-2"
+                        />
+                        <span>{index + 1}. {q.question}</span>
+                        <button
+                          onClick={() => setSelectedQuestion(q)}
+                          className="ml-2 bg-blue-500 text-white p-1 rounded text-sm"
+                        >
+                          View Details
+                        </button>
+                      </div>
+                      {selectedQuestion === q && (
+                        <div className="ml-6 mt-2 p-2 border rounded">
+                          <p><strong>Options:</strong></p>
+                          <ul>
+                            {q.options.map((opt, i) => (
+                              <li key={i} className={q.correctAnswer === opt ? 'text-green-500' : ''}>
+                                {i + 1}. {opt} {q.correctAnswer === opt && '(Correct)'}
+                              </li>
+                            ))}
+                          </ul>
+                          <p><strong>Context:</strong> {q.context}</p>
+                          <p><strong>Difficulty:</strong> {q.difficulty}</p>
+                          <button
+                            onClick={() => setSelectedQuestion(null)}
+                            className="mt-2 bg-gray-500 text-white p-1 rounded"
+                          >
+                            Close
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </>
@@ -250,23 +276,44 @@ function TeacherDashboard({ token, role }) {
                 <>
                   <h4 className="mt-4">Descriptive Questions (Available: {questions.descriptive.length})</h4>
                   {questions.descriptive.map((q, index) => (
-                    <div key={q._id} className="flex items-center mb-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedDescriptive.includes(q._id)}
-                        onChange={() => {
-                          setSelectedDescriptive(prev => {
-                            if (prev.includes(q._id)) {
-                              return prev.filter(id => id !== q._id);
-                            } else if (prev.length < desiredDescriptive) {
-                              return [...prev, q._id];
-                            }
-                            return prev;
-                          });
-                        }}
-                        className="mr-2"
-                      />
-                      <span>{index + 1}. {q.question}</span>
+                    <div key={q._id} className="mb-2">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedDescriptive.includes(q._id)}
+                          onChange={() => {
+                            setSelectedDescriptive(prev => {
+                              if (prev.includes(q._id)) {
+                                return prev.filter(id => id !== q._id);
+                              } else if (prev.length < desiredDescriptive) {
+                                return [...prev, q._id];
+                              }
+                              return prev;
+                            });
+                          }}
+                          className="mr-2"
+                        />
+                        <span>{index + 1}. {q.question}</span>
+                        <button
+                          onClick={() => setSelectedQuestion(q)}
+                          className="ml-2 bg-blue-500 text-white p-1 rounded text-sm"
+                        >
+                          View Details
+                        </button>
+                      </div>
+                      {selectedQuestion === q && (
+                        <div className="ml-6 mt-2 p-2 border rounded">
+                          <p><strong>Answer:</strong> {q.correctAnswer}</p>
+                          <p><strong>Context:</strong> {q.context}</p>
+                          <p><strong>Difficulty:</strong> {q.difficulty}</p>
+                          <button
+                            onClick={() => setSelectedQuestion(null)}
+                            className="mt-2 bg-gray-500 text-white p-1 rounded"
+                          >
+                            Close
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </>
@@ -307,9 +354,44 @@ function TeacherDashboard({ token, role }) {
               <button onClick={handleViewResults} className="bg-gray-500 text-white p-2 rounded mt-4 ml-2">
                 View Results
               </button>
+              <button onClick={() => navigate('/profile')} className="bg-purple-500 text-white p-2 rounded mt-4 ml-2">
+                View Profile
+              </button>
             </>
           )}
           {message && <p className={message.includes('success') ? 'text-green-500' : 'text-red-500'}>{message}</p>}
+
+          {/* Token Pop-Up Modal */}
+          {showTokenModal && (
+            <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
+              <div className="bg-white p-4 rounded shadow-lg">
+                <h3 className="text-lg font-bold">Upload Successful!</h3>
+                <p><strong>Generated Token:</strong> {generatedToken}</p>
+                <div className="mt-2">
+                  <a
+                    href={`https://api.whatsapp.com/send?text=Here%20is%20my%20QMaster%20token:%20${generatedToken}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-green-500 text-white p-2 rounded mr-2"
+                  >
+                    Share via WhatsApp
+                  </a>
+                  <a
+                    href={`mailto:?subject=QMaster%20Token&body=Here%20is%20my%20QMaster%20token:%20${generatedToken}`}
+                    className="bg-red-500 text-white p-2 rounded"
+                  >
+                    Share via Gmail
+                  </a>
+                </div>
+                <button
+                  onClick={() => setShowTokenModal(false)}
+                  className="mt-4 bg-gray-500 text-white p-2 rounded"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

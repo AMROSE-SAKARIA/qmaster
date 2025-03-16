@@ -1,99 +1,126 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
-function Student({ token }) {
+function Student({ token, role, onLogout }) {
+  const [tokenId, setTokenId] = useState('');
   const [questions, setQuestions] = useState({ mcqs: [], descriptive: [] });
   const [answers, setAnswers] = useState({ mcq: [], descriptive: [] });
-  const [tokenInput, setTokenInput] = useState('');
   const [message, setMessage] = useState('');
-  const [result, setResult] = useState(null);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    if (tokenInput) {
-      axios.post('http://localhost:5000/api/student/join', { token: tokenInput }, { headers: { 'authorization': token } })
-        .then(res => setQuestions(res.data))
-        .catch(err => setMessage(`Join failed: ${err.response?.data?.error || err.message}`));
+  if (role !== 'student') {
+    navigate('/');
+    return null;
+  }
+
+  const handleJoinTest = async () => {
+    try {
+      const res = await axios.post('http://localhost:5000/api/student/join', { token: tokenId }, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      setQuestions(res.data);
+      setAnswers({
+        mcq: res.data.mcqs.map(q => ({ id: q._id, answer: '' })),
+        descriptive: res.data.descriptive.map(q => ({ id: q._id, answer: '' })),
+      });
+      setMessage('Test joined successfully');
+    } catch (error) {
+      setMessage(error.response?.data?.error || 'Failed to join test');
     }
-  }, [tokenInput, token]);
-
-  const handleSubmit = () => {
-    axios.post('http://localhost:5000/api/student/submit', {
-      token: tokenInput,
-      answers,
-      studentName: localStorage.getItem('username'),
-    }, { headers: { 'authorization': token } })
-      .then(res => setResult(res.data))
-      .catch(err => setMessage(`Submit failed: ${err.response?.data?.error || err.message}`));
   };
 
-  const handleMCQChange = (id, value) => {
-    setAnswers(prev => ({
-      ...prev,
-      mcq: prev.mcq.map(a => a.id === id ? { ...a, answer: value } : a).filter(a => a.id === id || !a.answer)
-        .concat({ id, answer: value }).slice(0, 5),
-    }));
-  };
-
-  const handleDescriptiveChange = (id, value) => {
-    setAnswers(prev => ({
-      ...prev,
-      descriptive: prev.descriptive.map(a => a.id === id ? { ...a, answer: value } : a).filter(a => a.id === id || !a.answer)
-        .concat({ id, answer: value }).slice(0, 10),
-    }));
+  const handleSubmitTest = async () => {
+    try {
+      const res = await axios.post('http://localhost:5000/api/student/submit', {
+        token: tokenId,
+        answers,
+      }, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      setMessage(`Test submitted! Score: ${res.data.score}/${res.data.total}`);
+    } catch (error) {
+      setMessage(error.response?.data?.error || 'Failed to submit test');
+    }
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl mb-4">Student Dashboard</h2>
-      {!questions.mcqs.length && !questions.descriptive.length && (
-        <input
-          type="text"
-          value={tokenInput}
-          onChange={(e) => setTokenInput(e.target.value)}
-          placeholder="Enter Test Token"
-          className="border p-2 w-full mb-4"
-        />
-      )}
-      {questions.mcqs.length > 0 && (
-        <div>
-          <h3>MCQs</h3>
-          {questions.mcqs.map((q, i) => (
-            <div key={q._id} className="mb-4">
-              <p>{i + 1}. {q.question}</p>
-              {q.options.map((opt, j) => (
-                <div key={j}>
-                  <input
-                    type="radio"
-                    name={`mcq-${q._id}`}
-                    value={opt}
-                    onChange={() => handleMCQChange(q._id, opt)}
-                  /> {opt}
+    <div className="app">
+      <div className="container">
+        <div className="card">
+          <h2>Student Dashboard</h2>
+          <button onClick={() => navigate('/profile')} className="bg-blue-500 text-white p-2 rounded mb-4">
+            View Profile
+          </button>
+          <button onClick={onLogout} className="bg-red-500 text-white p-2 rounded mb-4 ml-2">
+            Logout
+          </button>
+          <h3>Join Test</h3>
+          <input
+            type="text"
+            value={tokenId}
+            onChange={(e) => setTokenId(e.target.value)}
+            placeholder="Enter Test Token"
+            className="w-full p-2 border rounded mb-4"
+          />
+          <button onClick={handleJoinTest} className="bg-green-500 text-white p-2 rounded">
+            Join Test
+          </button>
+
+          {questions.mcqs.length > 0 && (
+            <>
+              <h4 className="mt-4">MCQs</h4>
+              {questions.mcqs.map((q, index) => (
+                <div key={q._id} className="mb-4">
+                  <p>{index + 1}. {q.question}</p>
+                  {q.options.map((opt, i) => (
+                    <div key={i}>
+                      <input
+                        type="radio"
+                        name={`mcq-${q._id}`}
+                        value={opt}
+                        onChange={(e) => {
+                          const newAnswers = [...answers.mcq];
+                          newAnswers[index] = { id: q._id, answer: e.target.value };
+                          setAnswers({ ...answers, mcq: newAnswers });
+                        }}
+                        className="mr-2"
+                      />
+                      <label>{opt}</label>
+                    </div>
+                  ))}
                 </div>
               ))}
-            </div>
-          ))}
+            </>
+          )}
+          {questions.descriptive.length > 0 && (
+            <>
+              <h4 className="mt-4">Descriptive Questions</h4>
+              {questions.descriptive.map((q, index) => (
+                <div key={q._id} className="mb-4">
+                  <p>{index + 1}. {q.question}</p>
+                  <textarea
+                    onChange={(e) => {
+                      const newAnswers = [...answers.descriptive];
+                      newAnswers[index] = { id: q._id, answer: e.target.value };
+                      setAnswers({ ...answers, descriptive: newAnswers });
+                    }}
+                    placeholder="Your answer..."
+                    className="w-full p-2 border rounded"
+                    rows="3"
+                  />
+                </div>
+              ))}
+            </>
+          )}
+          {questions.mcqs.length > 0 && (
+            <button onClick={handleSubmitTest} className="bg-blue-500 text-white p-2 rounded mt-4">
+              Submit Test
+            </button>
+          )}
+          {message && <p className={message.includes('success') ? 'text-green-500' : 'text-red-500'}>{message}</p>}
         </div>
-      )}
-      {questions.descriptive.length > 0 && (
-        <div>
-          <h3>Descriptive Questions</h3>
-          {questions.descriptive.map((q, i) => (
-            <div key={q._id} className="mb-4">
-              <p>{i + 1}. {q.question}</p>
-              <textarea
-                value={(answers.descriptive.find(a => a.id === q._id)?.answer) || ''}
-                onChange={(e) => handleDescriptiveChange(q._id, e.target.value)}
-                className="border p-2 w-full h-20"
-              />
-            </div>
-          ))}
-        </div>
-      )}
-      {(questions.mcqs.length > 0 || questions.descriptive.length > 0) && (
-        <button onClick={handleSubmit} className="bg-blue-500 text-white p-2 rounded">Submit</button>
-      )}
-      {message && <p className="mt-4 text-red-500">{message}</p>}
-      {result && <p className="mt-4">Score: {result.score}/{result.total}</p>}
+      </div>
     </div>
   );
 }

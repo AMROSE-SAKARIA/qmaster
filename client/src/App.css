@@ -1,105 +1,185 @@
-.app {
-  font-family: Arial, sans-serif;
+/* client/src/App.css */
+
+/* Reset default styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Define a modern color palette */
+:root {
+  --primary: #1E3A8A; /* Dark Blue */
+  --secondary: #3B82F6; /* Light Blue */
+  --accent: #10B981; /* Green */
+  --danger: #EF4444; /* Red */
+  --background: #F3F4F6; /* Light Gray Background */
+  --card-bg: #FFFFFF; /* White Card Background */
+  --text-primary: #111827; /* Dark Gray Text */
+  --text-secondary: #6B7280; /* Light Gray Text */
+}
+
+/* Global styles */
+body {
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); /* Subtle gradient background */
+  color: var(--text-primary);
   min-height: 100vh;
-  background-color: #f3f4f6;
 }
 
+/* Container styles */
 .container {
-  max-width: 400px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 1rem;
 }
 
+/* Card styles */
 .card {
-  background-color: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  text-align: center;
+  background-color: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Headings */
 h2 {
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 20px;
-  color: #1f2937;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
 }
 
-input[type="text"],
-input[type="password"],
-input[type="email"],
+h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+h4 {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+/* Form inputs */
+input,
 textarea,
 select {
   width: 100%;
-  padding: 10px;
-  margin-bottom: 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  box-sizing: border-box;
-  font-size: 14px;
+  padding: 0.75rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--secondary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Buttons */
 button {
-  width: 100%;
-  padding: 10px;
-  background-color: #3b82f6;
-  color: white;
+  padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
   cursor: pointer;
-  font-size: 14px;
+  transition: background-color 0.3s ease, transform 0.1s ease;
 }
 
 button:hover {
-  background-color: #2563eb;
+  transform: translateY(-2px);
 }
 
-.error {
-  color: #ef4444;
-  margin-top: 10px;
-}
-
-a {
-  color: #8b5cf6;
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-nav {
-  background-color: #3b82f6;
-  padding: 10px 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-nav a {
+button.bg-blue-500 {
+  background-color: var(--secondary);
   color: white;
-  margin-right: 15px;
-  text-decoration: none;
 }
 
-nav a:hover {
-  text-decoration: underline;
+button.bg-blue-500:hover {
+  background-color: #2563EB;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
+button.bg-green-500 {
+  background-color: var(--accent);
+  color: white;
 }
 
-table, th, td {
-  border: 1px solid #d1d5db;
-  padding: 8px;
+button.bg-green-500:hover {
+  background-color: #059669;
 }
 
-th {
-  background-color: #e5e7eb;
-  color: #1f2937;
+button.bg-gray-500 {
+  background-color: #6B7280;
+  color: white;
 }
 
-tr:hover {
-  background-color: #f3f4f6;
+button.bg-gray-500:hover {
+  background-color: #4B5563;
+}
+
+button.bg-red-500 {
+  background-color: var(--danger);
+  color: white;
+}
+
+button.bg-red-500:hover {
+  background-color: #DC2626;
+}
+
+button.bg-purple-500 {
+  background-color: #8B5CF6;
+  color: white;
+}
+
+button.bg-purple-500:hover {
+  background-color: #7C3AED;
+}
+
+/* Messages */
+.text-green-500 {
+  color: var(--accent);
+}
+
+.text-red-500 {
+  color: var(--danger);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .container {
+    padding: 0.5rem;
+  }
+
+  .card {
+    padding: 1.5rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+  }
+
+  button {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
 }

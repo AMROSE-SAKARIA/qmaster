@@ -1,34 +1,47 @@
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-function Navbar({ token, setToken, setRole, role }) {
+function Navbar({ token, setToken, setRole, role, tokenId }) {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
     setToken('');
     setRole('');
     navigate('/');
   };
 
   return (
-    <nav>
-      <div className="container flex justify-between items-center">
+    <nav className="bg-gray-800 text-white p-4">
+      <div className="container mx-auto flex justify-between items-center">
         <Link to="/" className="text-xl font-bold">QMaster</Link>
-        <div>
-          <Link to="/" className="mr-4">Home</Link>
-          <Link to="/about" className="mr-4">About</Link>
+        <div className="space-x-4">
+          <Link to="/about" className="hover:underline">About</Link>
           {token ? (
             <>
-              {role === 'teacher' && <Link to="/teacher" className="mr-4">Teacher Dashboard</Link>}
-              {role === 'student' && <Link to="/student" className="mr-4">Student Dashboard</Link>}
-              {role === 'student' && <Link to="/student/results" className="mr-4">Results</Link>}
-              <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded">Logout</button>
+              {role === 'teacher' && (
+                <>
+                  <Link to="/teacher" className="hover:underline">Teacher Dashboard</Link>
+                  {tokenId && (
+                    <>
+                      <Link to={`/leaderboard/${tokenId}`} className="hover:underline">Leaderboard</Link>
+                      <Link to={`/submissions/${tokenId}`} className="hover:underline">Submissions</Link>
+                    </>
+                  )}
+                </>
+              )}
+              {role === 'student' && (
+                <>
+                  <Link to="/student" className="hover:underline">Student Dashboard</Link>
+                  <Link to="/results" className="hover:underline">Results</Link>
+                </>
+              )}
+              <Link to="/profile" className="hover:underline">Profile</Link>
+              <button onClick={handleLogout} className="hover:underline">Logout</button>
             </>
           ) : (
             <>
-              <Link to="/signin" className="mr-4">Sign In</Link>
-              <Link to="/signup">Sign Up</Link>
+              <Link to="/signin" className="hover:underline">Sign In</Link>
+              <Link to="/signup" className="hover:underline">Sign Up</Link>
             </>
           )}
         </div>

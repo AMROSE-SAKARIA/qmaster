@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { FaSignInAlt, FaTrophy, FaUser } from 'react-icons/fa';
 
 function StudentDashboard({ token, role }) {
-  const [tokenId, setTokenId] = useState('');
+  const [testToken, setTestToken] = useState('');
   const [questions, setQuestions] = useState({ mcqs: [], descriptive: [] });
   const [answers, setAnswers] = useState({ mcq: [], descriptive: [] });
   const [message, setMessage] = useState('');
@@ -14,102 +15,125 @@ function StudentDashboard({ token, role }) {
     return null;
   }
 
-  const handleJoinTest = async () => {
+  const handleJoinTest = async (e) => {
+    e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:5000/api/student/join', { token: tokenId }, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      const res = await axios.post(
+        'http://localhost:5000/api/student/join',
+        { token: testToken },
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
       setQuestions({ mcqs: res.data.mcqs, descriptive: res.data.descriptive });
       setAnswers({
         mcq: res.data.mcqs.map(q => ({ id: q._id, answer: '' })),
         descriptive: res.data.descriptive.map(q => ({ id: q._id, answer: '' })),
       });
-      setMessage('Test joined successfully');
+      setMessage('Test joined successfully. Questions have been randomly selected for you.');
     } catch (error) {
       setMessage(error.response?.data?.error || 'Failed to join test');
     }
   };
 
-  const handleSubmit = async () => {
+  const handleAnswerChange = (type, index, value) => {
+    setAnswers(prev => {
+      const newAnswers = { ...prev };
+      newAnswers[type][index].answer = value;
+      return newAnswers;
+    });
+  };
+
+  const handleSubmitTest = async () => {
     try {
-      const res = await axios.post('http://localhost:5000/api/student/submit', {
-        token: tokenId,
-        answers,
-      }, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      const res = await axios.post(
+        'http://localhost:5000/api/student/submit',
+        { token: testToken, answers },
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
       setMessage(`Test submitted! Score: ${res.data.score}/${res.data.total}`);
-      navigate(`/leaderboard/${tokenId}`);
+      setQuestions({ mcqs: [], descriptive: [] });
+      setAnswers({ mcq: [], descriptive: [] });
+      navigate('/results');
     } catch (error) {
-      setMessage(error.response?.data?.error || 'Submission failed');
+      setMessage(error.response?.data?.error || 'Failed to submit test');
     }
   };
 
   return (
-    <div className="app">
-      <div className="container">
-        <div className="card">
-          <h2>Student Dashboard</h2>
-          <input
-            type="text"
-            value={tokenId}
-            onChange={(e) => setTokenId(e.target.value)}
-            placeholder="Enter Test Token"
-          />
-          <button onClick={handleJoinTest}>Join Test</button>
-
-          {questions.mcqs.length > 0 && (
-            <>
-              <h3>MCQs</h3>
-              {questions.mcqs.map((q, index) => (
-                <div key={q._id}>
-                  <p>{index + 1}. {q.question}</p>
-                  {q.options.map((option, i) => (
-                    <label key={i}>
-                      <input
-                        type="radio"
-                        name={`mcq-${q._id}`}
-                        value={option}
-                        onChange={(e) => {
-                          const newAnswers = [...answers.mcq];
-                          newAnswers[index].answer = e.target.value;
-                          setAnswers({ ...answers, mcq: newAnswers });
-                        }}
-                      />
-                      {option}
-                    </label>
-                  ))}
-                </div>
-              ))}
-            </>
-          )}
-
-          {questions.descriptive.length > 0 && (
-            <>
-              <h3>Descriptive Questions</h3>
-              {questions.descriptive.map((q, index) => (
-                <div key={q._id}>
-                  <p>{index + 1}. {q.question}</p>
-                  <textarea
-                    value={answers.descriptive[index]?.answer || ''}
-                    onChange={(e) => {
-                      const newAnswers = [...answers.descriptive];
-                      newAnswers[index].answer = e.target.value;
-                      setAnswers({ ...answers, descriptive: newAnswers });
-                    }}
-                    placeholder="Type your answer here"
-                  />
-                </div>
-              ))}
-            </>
-          )}
-
-          {(questions.mcqs.length > 0 || questions.descriptive.length > 0) && (
-            <button onClick={handleSubmit}>Submit Test</button>
-          )}
-
-          {message && <p className={message.includes('success') ? 'text-green-500' : 'error'}>{message}</p>}
-        </div>
+    <div className="container">
+      <div className="card">
+        <h2 className="text-center text-2xl font-bold">Student Dashboard</h2>
+        {!questions.mcqs.length && !questions.descriptive.length ? (
+          <form onSubmit={handleJoinTest}>
+            <div className="mb-6">
+              <label htmlFor="testToken" className="block text-gray-700 mb-2">Enter Test Token</label>
+              <input
+                type="text"
+                id="testToken"
+                value={testToken}
+                onChange={(e) => setTestToken(e.target.value)}
+                placeholder="Enter Test Token"
+                className="w-full"
+              />
+            </div>
+            <div className="flex justify-center space-x-4">
+              <button type="submit" className="bg-blue-500 flex items-center space-x-2">
+                <FaSignInAlt />
+                <span>Join Test</span>
+              </button>
+              <button onClick={() => navigate('/results')} className="bg-gray-500 flex items-center space-x-2">
+                <FaTrophy />
+                <span>View Results</span>
+              </button>
+              <button onClick={() => navigate('/profile')} className="bg-purple-500 flex items-center space-x-2">
+                <FaUser />
+                <span>View Profile</span>
+              </button>
+            </div>
+          </form>
+        ) : (
+          <>
+            <h3 className="text-center">Test Questions (Randomly Selected)</h3>
+            <h4 className="mt-4">MCQs</h4>
+            {questions.mcqs.map((q, index) => (
+              <div key={q._id} className="mb-4">
+                <p className="font-medium">{index + 1}. {q.question}</p>
+                {q.options.map((opt, i) => (
+                  <label key={i} className="block mt-1">
+                    <input
+                      type="radio"
+                      name={`mcq-${index}`}
+                      value={opt}
+                      checked={answers.mcq[index].answer === opt}
+                      onChange={(e) => handleAnswerChange('mcq', index, e.target.value)}
+                      className="mr-2"
+                    />
+                    {opt}
+                  </label>
+                ))}
+              </div>
+            ))}
+            <h4 className="mt-4">Descriptive Questions</h4>
+            {questions.descriptive.map((q, index) => (
+              <div key={q._id} className="mb-4">
+                <p className="font-medium">{index + 1}. {q.question}</p>
+                <textarea
+                  value={answers.descriptive[index].answer}
+                  onChange={(e) => handleAnswerChange('descriptive', index, e.target.value)}
+                  className="w-full mt-2"
+                  rows="3"
+                  placeholder="Write your answer here..."
+                />
+              </div>
+            ))}
+            <div className="flex justify-center">
+              <button onClick={handleSubmitTest} className="bg-blue-500 flex items-center space-x-2">
+                <FaSignInAlt />
+                <span>Submit Test</span>
+              </button>
+            </div>
+          </>
+        )}
+        {message && <p className={`text-center mt-4 ${message.includes('success') ? 'text-green-500' : 'text-red-500'}`}>{message}</p>}
       </div>
     </div>
   );

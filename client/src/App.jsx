@@ -1,35 +1,83 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Navbar from './components/Navbar.jsx';
 import Home from './pages/Home.jsx';
+import StudentDashboard from './pages/StudentDashboard.jsx';
+import StudentResults from './pages/StudentResults.jsx';
+import Teacher from './components/Teacher.jsx';
+import Profile from './components/Profile.jsx';
+import Leaderboard from './components/Leaderboard.jsx';
+import SubmissionReview from './components/SubmissionReview.jsx';
 import About from './pages/About.jsx';
 import Signin from './pages/Signin.jsx';
 import Signup from './pages/Signup.jsx';
-import TeacherDashboard from './pages/TeacherDashboard.jsx';
-import StudentDashboard from './pages/StudentDashboard.jsx';
-import StudentResults from './pages/StudentResults.jsx';
-import Leaderboard from './pages/Leaderboard.jsx';
-import Navbar from './components/Navbar.jsx';
 import './App.css';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || '');
   const [role, setRole] = useState(localStorage.getItem('role') || '');
+  const [tokenId, setTokenId] = useState(localStorage.getItem('tokenId') || '');
+
+  useEffect(() => {
+    if (token) {
+      localStorage.setItem('token', token);
+      localStorage.setItem('role', role);
+      localStorage.setItem('tokenId', tokenId);
+    } else {
+      localStorage.removeItem('token');
+      localStorage.removeItem('role');
+      localStorage.removeItem('tokenId');
+      setTokenId('');
+    }
+  }, [token, role, tokenId]);
 
   return (
     <Router>
       <div className="app">
-        <Navbar token={token} setToken={setToken} setRole={setRole} role={role} />
+        <Navbar token={token} setToken={setToken} setRole={setRole} role={role} tokenId={tokenId} />
         <div className="container">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/signin" element={<Signin setToken={setToken} setRole={setRole} />} />
-            <Route path="/signup" element={<Signup setToken={setToken} setRole={setRole} />} />
-            <Route path="/teacher" element={<TeacherDashboard token={token} role={role} />} />
-            <Route path="/student" element={<StudentDashboard token={token} role={role} />} />
-            <Route path="/student/results" element={<StudentResults token={token} role={role} />} />
-            <Route path="/leaderboard/:token" element={<Leaderboard token={token} role={role} />} />
-          </Routes>
+          <div className="card">
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<Home />} />
+              <Route
+                path="/signin"
+                element={token ? <Navigate to={role === 'teacher' ? '/teacher' : '/student'} /> : <Signin setToken={setToken} setRole={setRole} />}
+              />
+              <Route
+                path="/signup"
+                element={token ? <Navigate to={role === 'teacher' ? '/teacher' : '/student'} /> : <Signup />}
+              />
+              <Route path="/about" element={<About />} />
+
+              {/* Protected Routes */}
+              <Route
+                path="/teacher"
+                element={token && role === 'teacher' ? <Teacher token={token} role={role} setTokenId={setTokenId} /> : <Navigate to="/signin" />}
+              />
+              <Route
+                path="/student"
+                element={token && role === 'student' ? <StudentDashboard token={token} role={role} /> : <Navigate to="/signin" />}
+              />
+              <Route
+                path="/profile"
+                element={token ? <Profile token={token} role={role} /> : <Navigate to="/signin" />}
+              />
+              <Route
+                path="/leaderboard/:tokenId"
+                element={token ? <Leaderboard token={token} role={role} /> : <Navigate to="/signin" />}
+              />
+              <Route
+                path="/submissions/:tokenId"
+                element={token && role === 'teacher' ? <SubmissionReview token={token} role={role} /> : <Navigate to="/signin" />}
+              />
+              <Route
+                path="/results"
+                element={token && role === 'student' ? <StudentResults token={token} role={role} /> : <Navigate to="/signin" />}
+              />
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </div>
         </div>
       </div>
     </Router>

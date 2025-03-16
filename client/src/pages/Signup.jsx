@@ -1,23 +1,29 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { FaSignInAlt, FaUserPlus, FaKey } from 'react-icons/fa';
 
-function Signup({ setToken, setRole }) {
+function Signup() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
-  const [localRole, setLocalRole] = useState('student');
+  const [role, setRole] = useState('');
   const [otp, setOtp] = useState('');
-  const [step, setStep] = useState(1);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/register', { username, password, email, role: localRole });
-      setStep(2);
-      setMessage('OTP sent to your email');
+      const res = await axios.post('http://localhost:5000/api/register', {
+        username,
+        password,
+        role: role || 'student',
+        email,
+      });
+      setMessage(res.data.message);
+      setIsVerifying(true);
     } catch (error) {
       setMessage(error.response?.data?.error || 'Registration failed');
     }
@@ -26,8 +32,14 @@ function Signup({ setToken, setRole }) {
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/verify-otp', { username, password, role: localRole, otp });
-      setMessage('Registration successful! Please sign in.');
+      const res = await axios.post('http://localhost:5000/api/verify-otp', {
+        username,
+        password,
+        role: role || 'student',
+        otp,
+      });
+      setMessage(res.data.message);
+      setIsVerifying(false);
       navigate('/signin');
     } catch (error) {
       setMessage(error.response?.data?.error || 'OTP verification failed');
@@ -35,52 +47,90 @@ function Signup({ setToken, setRole }) {
   };
 
   return (
-    <div className="app">
-      <div className="container">
-        <div className="card">
-          <h2>Sign Up</h2>
-          {step === 1 ? (
-            <form onSubmit={handleRegister}>
+    <div className="container">
+      <div className="card">
+        <h2 className="text-center">{isVerifying ? 'Verify OTP' : 'Register'}</h2>
+        {isVerifying ? (
+          <form onSubmit={handleVerifyOtp}>
+            <div className="mb-4">
+              <label htmlFor="otp" className="block text-gray-700 mb-1">Enter OTP</label>
               <input
                 type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Username"
-              />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-              />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
-              />
-              <select value={localRole} onChange={(e) => setLocalRole(e.target.value)}>
-                <option value="student">Student</option>
-                <option value="teacher">Teacher</option>
-              </select>
-              <button type="submit">Register</button>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyOtp}>
-              <input
-                type="text"
+                id="otp"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 placeholder="Enter OTP"
+                className="w-full"
               />
-              <button type="submit">Verify OTP</button>
-            </form>
-          )}
-          {message && <p className={message.includes('successful') ? 'text-green-500' : 'error'}>{message}</p>}
-          <p>
-            Already have an account? <Link to="/signin">Sign In</Link>
-          </p>
-        </div>
+            </div>
+            <div className="flex justify-center">
+              <button type="submit" className="bg-blue-500 flex items-center space-x-2">
+                <FaKey />
+                <span>Verify OTP</span>
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleRegister}>
+            <div className="mb-4">
+              <label htmlFor="username" className="block text-gray-700 mb-1">Username</label>
+              <input
+                type="text"
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Username"
+                className="w-full"
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="password" className="block text-gray-700 mb-1">Password</label>
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                className="w-full"
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="email" className="block text-gray-700 mb-1">Email</label>
+              <input
+                type="email"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email"
+                className="w-full"
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="role" className="block text-gray-700 mb-1">Select Role</label>
+              <select
+                id="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className="w-full"
+              >
+                <option value="">Select Role</option>
+                <option value="student">Student</option>
+                <option value="teacher">Teacher</option>
+              </select>
+            </div>
+            <div className="flex justify-center space-x-4">
+              <button type="submit" className="bg-green-500 flex items-center space-x-2">
+                <FaUserPlus />
+                <span>Register</span>
+              </button>
+              <button type="button" onClick={() => navigate('/signin')} className="bg-blue-500 flex items-center space-x-2">
+                <FaSignInAlt />
+                <span>Go to Login</span>
+              </button>
+            </div>
+          </form>
+        )}
+        {message && <p className={`text-center mt-4 ${message.includes('success') ? 'text-green-500' : 'text-red-500'}`}>{message}</p>}
       </div>
     </div>
   );
