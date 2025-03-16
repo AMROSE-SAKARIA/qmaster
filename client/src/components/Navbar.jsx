@@ -14,7 +14,7 @@ function Navbar({ token, setToken, setRole, role, tokenId }) {
     <nav className="bg-gray-800 text-white p-4">
       <div className="container mx-auto flex justify-between items-center">
         <Link to="/" className="text-xl font-bold">QMaster</Link>
-        <div className="space-x-4">
+        <div className="hidden md:flex space-x-6 text-lg font-medium">
           <Link to="/about" className="hover:underline">About</Link>
           {token ? (
             <>

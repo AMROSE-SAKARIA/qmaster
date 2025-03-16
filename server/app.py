@@ -101,7 +101,7 @@ def setup_user():
     username = data.get('username', 'teacher1')
     password = data.get('password', 'password123')
     role = data.get('role', 'teacher')
-    email = data.get('email', '')  # Allow email in setup-user
+    email = data.get('email', '')
     if users.find_one({"username": {"$regex": f"^{username}$", "$options": "i"}}):
         return jsonify({"error": "Username taken"}), 400
     hashed = hashpw(password.encode('utf-8'), gensalt()).decode('utf-8')
@@ -109,7 +109,7 @@ def setup_user():
         "username": username,
         "password": hashed,
         "role": role,
-        "email": email,  # Store email
+        "email": email,
         "createdAt": datetime.now(),
         "conductedTests": [] if role == "teacher" else None,
         "attendedTests": [] if role == "student" else None
@@ -150,7 +150,7 @@ def verify_otp():
         "username": username,
         "password": hashed,
         "role": role,
-        "email": email,  # Store email
+        "email": email,
         "createdAt": datetime.now(),
         "conductedTests": [] if role == "teacher" else None,
         "attendedTests": [] if role == "student" else None
@@ -223,6 +223,7 @@ def upload_content():
         return jsonify({"error": "Unauthorized"}), 403
 
     input_type = request.form.get('inputType')
+    subject = request.form.get('subject', 'General')  # New: Default to 'General' if not provided
     if not input_type or input_type not in ['text', 'pdf']:
         return jsonify({"error": "Invalid input type. Must be 'text' or 'pdf'"}), 400
 
@@ -300,7 +301,8 @@ def upload_content():
             "correctIndex": mcq.get('correct_index', 0),
             "marks": mcq_marks,
             "context": mcq['context'],
-            "difficulty": mcq['difficulty']
+            "difficulty": mcq['difficulty'],
+            "subject": subject  # Add subject to each question
         })
     for desc in descriptive:
         questions_to_insert.append({
@@ -311,7 +313,8 @@ def upload_content():
             "marks": descriptive_marks,
             "pdfContent": pdf_content if input_type == 'pdf' else None,
             "context": desc['context'],
-            "difficulty": desc['difficulty']
+            "difficulty": desc['difficulty'],
+            "subject": subject  # Add subject to each question
         })
 
     try:
@@ -319,7 +322,7 @@ def upload_content():
             questions.insert_many(questions_to_insert)
             logger.info(f"Inserted {len(questions_to_insert)} questions into database")
         content_to_store = content_to_process
-        notes.insert_one({"token": token_id, "content": content_to_store, "createdAt": datetime.now(), "inputType": input_type})
+        notes.insert_one({"token": token_id, "content": content_to_store, "createdAt": datetime.now(), "inputType": input_type, "subject": subject})
         logger.info(f"Inserted note with token: {token_id}")
     except Exception as e:
         logger.error(f"Database insertion failed: {e}", exc_info=True)
@@ -366,8 +369,72 @@ def get_questions(token):
         "mcqs": valid_mcqs,
         "descriptive": valid_descriptive,
         "totalMCQs": total_mcqs,
-        "totalDescriptive": total_descriptive
+        "totalDescriptive": total_descriptive,
+        "subject": valid_mcqs[0]['subject'] if valid_mcqs else valid_descriptive[0]['subject'] if valid_descriptive else 'General'  # Return subject
     }), 200
+
+@app.route('/api/teacher/question-history/<token>', methods=['GET'])
+def get_question_history(token):
+    auth_token = request.headers.get('Authorization')
+    if not auth_token or not auth_token.startswith('Bearer '):
+        return jsonify({"error": "No token provided"}), 401
+    payload = authenticate(auth_token[7:])
+    if not payload or payload['role'] != 'teacher':
+        return jsonify({"error": "Unauthorized"}), 403
+
+    # Fetch all questions for the token
+    questions_list = list(questions.find({"token": token}))
+
+    # Fetch all submissions for the token
+    submissions_list = list(submissions.find({"token": token}))
+
+    # Aggregate student performance with answers
+    history = []
+    for question in questions_list:
+        question_data = {
+            "_id": str(question['_id']),
+            "question": question['question'],
+            "type": question['type'],
+            "subject": question['subject'],
+            "difficulty": question['difficulty'],
+            "context": question['context'],
+            "options": question.get('options', []),
+            "correctAnswer": question.get('correctAnswer'),
+            "marks": question['marks']
+        }
+        student_performance = []
+        for submission in submissions_list:
+            answers = submission.get('answers', {})
+            if question['type'] == 'mcq':
+                for answer in answers.get('mcq', []):
+                    if str(answer['id']) == str(question['_id']):
+                        student_performance.append({
+                            "studentName": submission['studentName'],
+                            "answer": answer['answer'],
+                            "isCorrect": answer['answer'] == question['correctAnswer'],
+                            "score": question['marks'] if answer['answer'] == question['correctAnswer'] else 0,
+                            "submittedAt": submission['submittedAt'].isoformat()
+                        })
+            elif question['type'] == 'descriptive':
+                for answer in answers.get('descriptive', []):
+                    if str(answer['id']) == str(question['_id']):
+                        student_answer = nlp(answer['answer'].lower() if answer['answer'] else "")
+                        correct_answer = nlp(question['correctAnswer'].lower() if question['correctAnswer'] else "")
+                        similarity = student_answer.similarity(correct_answer) if student_answer and correct_answer else 0
+                        score = min(similarity * question['marks'], question['marks'])
+                        student_performance.append({
+                            "studentName": submission['studentName'],
+                            "answer": answer['answer'],
+                            "similarity": similarity,
+                            "score": round(score, 2),
+                            "submittedAt": submission['submittedAt'].isoformat()
+                        })
+        question_data['studentPerformance'] = student_performance
+        history.append(question_data)
+
+    return jsonify({"history": history}), 200
+
+# ... (previous imports and setup remain the same)
 
 @app.route('/api/teacher/create-test', methods=['POST'])
 def create_test():
@@ -386,7 +453,7 @@ def create_test():
     # Fetch the question pool to validate the desired counts
     mcqs = list(questions.find({"token": token, "type": "mcq"}))
     descriptive = list(questions.find({"token": token, "type": "descriptive"}))
-    
+
     # Filter valid questions (same as get_questions endpoint)
     valid_mcqs = [
         mcq for mcq in mcqs
@@ -411,12 +478,17 @@ def create_test():
     if desired_mcqs == 0 or desired_descriptive == 0:
         return jsonify({"error": "Desired MCQs and Descriptive questions must be greater than 0"}), 400
 
+    # Fetch the subject from the notes collection
+    note = notes.find_one({"token": token})
+    subject = note.get('subject', 'General') if note else 'General'
+
     # Store only the desired counts in the test configuration
     test_config = {
         "token": token,
         "desiredMCQs": desired_mcqs,
         "desiredDescriptive": desired_descriptive,
-        "createdAt": datetime.now()
+        "createdAt": datetime.now(),
+        "subject": subject  # Include subject in test configuration
     }
     tests.insert_one(test_config)
     users.update_one(
@@ -427,13 +499,16 @@ def create_test():
                     "token": token,
                     "createdAt": datetime.now(),
                     "numMCQs": desired_mcqs,
-                    "numDescriptive": desired_descriptive
+                    "numDescriptive": desired_descriptive,
+                    "subject": subject  # Add subject to conductedTests
                 }
             }
         }
     )
     logger.info(f"Updated conductedTests for teacher {payload['username']} with token {token}")
     return jsonify({"testToken": token, "message": f"Test created with {desired_mcqs} MCQs and {desired_descriptive} descriptive questions to be randomly selected from the pool"}), 201
+
+# ... (rest of the app.py remains the same)
 
 @app.route('/api/student/join', methods=['POST'])
 def join_test():
@@ -528,7 +603,7 @@ def submit_test():
         "token": token,
         "studentName": student_name,
         "answers": answers,
-        "questions": {  # Add the questions assigned to this student
+        "questions": {
             "mcq": [
                 {key: question[key] for key in question if key != '_id'} | {"_id": str(question['_id'])}
                 for question in mcq_questions
@@ -573,7 +648,7 @@ def teacher_results(token):
         if '_id' in item:
             item['_id'] = str(item['_id'])
         item['answers'] = item.get('answers', {})
-        item['questions'] = item.get('questions', {})  # Include the questions in the response
+        item['questions'] = item.get('questions', {})
     return jsonify({"submissions": submissions_list, "classAverage": round(class_average, 2)}), 200
 
 @app.route('/api/student/results', methods=['GET'])

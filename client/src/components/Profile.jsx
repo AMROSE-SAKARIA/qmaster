@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { FaEye } from 'react-icons/fa'; // Import FaEye for the view button
 
 function Profile({ token, role }) {
   const [profile, setProfile] = useState(null);
@@ -23,6 +24,10 @@ function Profile({ token, role }) {
 
   if (!profile) return <div>Loading...</div>;
 
+  const handleViewPerformance = (token) => {
+    navigate(`/teacher/question-history/${token}`);
+  };
+
   return (
     <div className="app">
       <div className="container">
@@ -36,7 +41,18 @@ function Profile({ token, role }) {
               <h4>Conducted Tests</h4>
               {profile.conductedTests.map((test, index) => (
                 <div key={index} className="mb-2">
-                  <p>Token: {test.token}, Date: {new Date(test.createdAt).toLocaleString()}, MCQs: {test.numMCQs}, Descriptive: {test.numDescriptive}</p>
+                  <p>
+                    <strong>Token:</strong> {test.token}, <strong>Subject:</strong> {test.subject || 'General'}, 
+                    <strong> Date:</strong> {new Date(test.createdAt).toLocaleString()}, 
+                    <strong> MCQs:</strong> {test.numMCQs}, <strong> Descriptive:</strong> {test.numDescriptive}
+                    <button
+                      onClick={() => handleViewPerformance(test.token)}
+                      className="ml-2 bg-blue-500 text-white p-1 rounded text-sm flex items-center space-x-1 inline-block"
+                    >
+                      <FaEye />
+                      <span>View Performance</span>
+                    </button>
+                  </p>
                 </div>
               ))}
             </div>
@@ -46,7 +62,11 @@ function Profile({ token, role }) {
               <h4>Attended Tests</h4>
               {profile.attendedTests.map((test, index) => (
                 <div key={index} className="mb-2">
-                  <p>Token: {test.token}, Date: {new Date(test.submittedAt).toLocaleString()}, Score: {test.score}/{test.totalMarks}</p>
+                  <p>
+                    <strong>Token:</strong> {test.token}, 
+                    <strong> Date:</strong> {new Date(test.submittedAt).toLocaleString()}, 
+                    <strong> Score:</strong> {test.score}/{test.totalMarks}
+                  </p>
                 </div>
               ))}
             </div>

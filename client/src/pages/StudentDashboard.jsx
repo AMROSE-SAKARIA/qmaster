@@ -58,6 +58,11 @@ function StudentDashboard({ token, role }) {
     }
   };
 
+  // Format options with letters (a, b, c, d)
+  const formatOptions = (options) => {
+    return options.map((opt, index) => `${String.fromCharCode(97 + index)}. ${opt}`);
+  };
+
   return (
     <div className="container">
       <div className="card">
@@ -97,13 +102,13 @@ function StudentDashboard({ token, role }) {
             {questions.mcqs.map((q, index) => (
               <div key={q._id} className="mb-4">
                 <p className="font-medium">{index + 1}. {q.question}</p>
-                {q.options.map((opt, i) => (
+                {formatOptions(q.options).map((opt, i) => (
                   <label key={i} className="block mt-1">
                     <input
                       type="radio"
                       name={`mcq-${index}`}
-                      value={opt}
-                      checked={answers.mcq[index].answer === opt}
+                      value={q.options[i]}
+                      checked={answers.mcq[index].answer === q.options[i]}
                       onChange={(e) => handleAnswerChange('mcq', index, e.target.value)}
                       className="mr-2"
                     />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
+import { FaEye } from 'react-icons/fa'; // Import FaEye for the view button
 
 function Leaderboard({ token, role }) {
   const { tokenId } = useParams();
@@ -47,6 +48,7 @@ function Leaderboard({ token, role }) {
                   <th className="p-2">Student</th>
                   <th className="p-2">Score</th>
                   <th className="p-2">Date</th>
+                  {role === 'teacher' && <th className="p-2">Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -56,18 +58,21 @@ function Leaderboard({ token, role }) {
                     <td className="p-2">{entry.studentName}</td>
                     <td className="p-2">{entry.score}/{entry.totalMarks}</td>
                     <td className="p-2">{new Date(entry.submittedAt).toLocaleString()}</td>
+                    {role === 'teacher' && (
+                      <td className="p-2">
+                        <button
+                          onClick={() => navigate(`/submissions/${tokenId}/${encodeURIComponent(entry.studentName)}`)}
+                          className="bg-blue-500 text-white p-1 rounded flex items-center space-x-1"
+                        >
+                          <FaEye />
+                          <span>View Submission</span>
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
-          )}
-          {role === 'teacher' && (
-            <button
-              onClick={() => navigate(`/submissions/${tokenId}`)}
-              className="bg-blue-500 text-white p-2 rounded mt-4"
-            >
-              View Submissions
-            </button>
           )}
           <button onClick={() => navigate('/')} className="bg-gray-500 text-white p-2 rounded mt-4 ml-2">
             Back

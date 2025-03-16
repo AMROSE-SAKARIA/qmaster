@@ -19,7 +19,7 @@ function Signin({ setToken, setRole }) {
       setToken(res.data.token);
       setRole(res.data.role);
       setMessage('Login successful');
-      navigate('/');
+      
     } catch (error) {
       setMessage(error.response?.data?.error || 'Login failed');
     }

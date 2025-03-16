@@ -8,6 +8,7 @@ import Teacher from './components/Teacher.jsx';
 import Profile from './components/Profile.jsx';
 import Leaderboard from './components/Leaderboard.jsx';
 import SubmissionReview from './components/SubmissionReview.jsx';
+import QuestionHistory from './components/QuestionHistory.jsx';
 import About from './pages/About.jsx';
 import Signin from './pages/Signin.jsx';
 import Signup from './pages/Signup.jsx';
@@ -68,12 +69,16 @@ function App() {
                 element={token ? <Leaderboard token={token} role={role} /> : <Navigate to="/signin" />}
               />
               <Route
-                path="/submissions/:tokenId"
+                path="/submissions/:tokenId/:studentName" // Updated route to include studentName
                 element={token && role === 'teacher' ? <SubmissionReview token={token} role={role} /> : <Navigate to="/signin" />}
               />
               <Route
                 path="/results"
                 element={token && role === 'student' ? <StudentResults token={token} role={role} /> : <Navigate to="/signin" />}
+              />
+              <Route
+                path="/teacher/question-history/:tokenId"
+                element={token && role === 'teacher' ? <QuestionHistory token={token} role={role} /> : <Navigate to="/signin" />}
               />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>

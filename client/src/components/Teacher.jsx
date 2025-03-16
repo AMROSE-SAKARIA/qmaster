@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { FaUpload, FaQuestionCircle, FaEye, FaCheckSquare, FaTrophy, FaUser, FaWhatsapp, FaEnvelope, FaTimes } from 'react-icons/fa';
+import { FaUpload, FaQuestionCircle, FaEye, FaCheckSquare, FaTrophy, FaUser, FaWhatsapp, FaEnvelope, FaTimes, FaHistory } from 'react-icons/fa';
 
-function Teacher({ token, role, setTokenId }) {  // Add setTokenId prop to pass the token to parent component
+function Teacher({ token, role, setTokenId }) {
   const [inputType, setInputType] = useState('text');
   const [textContent, setTextContent] = useState('');
   const [pdfFile, setPdfFile] = useState(null);
@@ -14,22 +14,27 @@ function Teacher({ token, role, setTokenId }) {  // Add setTokenId prop to pass 
   const [desiredMCQs, setDesiredMCQs] = useState(5);
   const [desiredDescriptive, setDesiredDescriptive] = useState(3);
   const [tokenId, setLocalTokenId] = useState('');
-  const [questions, setQuestions] = useState({ mcqs: [], descriptive: [], totalMCQs: 0, totalDescriptive: 0 });
+  const [questions, setQuestions] = useState({ mcqs: [], descriptive: [], totalMCQs: 0, totalDescriptive: 0, subject: 'General' });
   const [message, setMessage] = useState('');
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [generatedToken, setGeneratedToken] = useState('');
+  const [subject, setSubject] = useState('General'); // New: Subject state
+  const [questionHistory, setQuestionHistory] = useState([]); // New: Question history state
   const navigate = useNavigate();
 
-  if (role !== 'teacher') {
-    navigate('/');
-    return null;
-  }
+  // Redirect if not a teacher
+  useEffect(() => {
+    if (role !== 'teacher') {
+      navigate('/');
+    }
+  }, [role, navigate]);
 
   const handleUpload = async (e) => {
     e.preventDefault();
     const formData = new FormData();
     formData.append('inputType', inputType);
+    formData.append('subject', subject); // Add subject to form data
 
     if (inputType === 'text') {
       if (!textContent.trim()) {
@@ -57,9 +62,10 @@ function Teacher({ token, role, setTokenId }) {  // Add setTokenId prop to pass 
           'Content-Type': 'multipart/form-data' 
         },
       });
-      setLocalTokenId(res.data.token);
-      setTokenId(res.data.token);  // Pass token to parent component for navigation
-      setGeneratedToken(res.data.token);
+      const newTokenId = res.data.token;
+      setLocalTokenId(newTokenId);
+      setTokenId(newTokenId); // Pass token to parent component
+      setGeneratedToken(newTokenId);
       setShowTokenModal(true);
       setMessage('Content uploaded successfully');
     } catch (error) {
@@ -68,25 +74,39 @@ function Teacher({ token, role, setTokenId }) {  // Add setTokenId prop to pass 
   };
 
   const fetchQuestions = async () => {
+    if (!tokenId) return;
     try {
       const res = await axios.get(`http://localhost:5000/api/teacher/questions/${tokenId}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      const { mcqs, descriptive, totalMCQs, totalDescriptive } = res.data;
-      setQuestions({ mcqs, descriptive, totalMCQs, totalDescriptive });
+      const { mcqs, descriptive, totalMCQs, totalDescriptive, subject: fetchedSubject } = res.data;
+      setQuestions({ mcqs, descriptive, totalMCQs, totalDescriptive, subject: fetchedSubject || 'General' });
 
       if (totalMCQs < desiredMCQs) {
         setMessage(`Warning: Only ${totalMCQs} valid MCQs available, but ${desiredMCQs} requested.`);
-        setDesiredMCQs(totalMCQs);  // Adjust desiredMCQs if necessary
+        setDesiredMCQs(totalMCQs);
       }
       if (totalDescriptive < desiredDescriptive) {
         setMessage(prev => prev ? `${prev} | Only ${totalDescriptive} valid Descriptive questions available, but ${desiredDescriptive} requested.` : `Only ${totalDescriptive} valid Descriptive questions available, but ${desiredDescriptive} requested.`);
-        setDesiredDescriptive(totalDescriptive);  // Adjust desiredDescriptive if necessary
+        setDesiredDescriptive(totalDescriptive);
       } else {
         setMessage('Questions fetched successfully');
       }
     } catch (error) {
       setMessage(error.response?.data?.error || 'Failed to fetch questions');
+    }
+  };
+
+  const fetchQuestionHistory = async () => {
+    if (!tokenId) return;
+    try {
+      const res = await axios.get(`http://localhost:5000/api/teacher/question-history/${tokenId}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      setQuestionHistory(res.data.history);
+      setMessage('Question history fetched successfully');
+    } catch (error) {
+      setMessage(error.response?.data?.error || 'Failed to fetch question history');
     }
   };
 
@@ -122,12 +142,27 @@ function Teacher({ token, role, setTokenId }) {  // Add setTokenId prop to pass 
     navigate(`/leaderboard/${tokenId}`);
   };
 
+  // Format options with letters (a, b, c, d)
+  const formatOptions = (options) => {
+    return options.map((opt, index) => `${String.fromCharCode(97 + index)}. ${opt}`).join('<br />');
+  };
+
   return (
     <div className="container">
       <div className="card">
         <h2 className="text-center">Teacher Dashboard</h2>
         <h3>Upload Content</h3>
         <form onSubmit={handleUpload}>
+          <div className="mb-4">
+            <label className="block text-gray-700 mb-1">Subject:</label>
+            <input
+              type="text"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Enter subject (e.g., Math, Science)"
+              className="w-full"
+            />
+          </div>
           <div className="mb-4">
             <label className="block text-gray-700 mb-1">Select Input Type:</label>
             <select
@@ -223,11 +258,15 @@ function Teacher({ token, role, setTokenId }) {  // Add setTokenId prop to pass 
 
         {tokenId && (
           <>
-            <h3 className="mt-4">Token: {tokenId}</h3>
-            <div className="flex justify-center">
+            <h3 className="mt-4">Token: {tokenId} | Subject: {questions.subject}</h3>
+            <div className="flex justify-center space-x-4">
               <button onClick={fetchQuestions} className="bg-green-500 flex items-center space-x-2 mt-2">
                 <FaQuestionCircle />
                 <span>Fetch Question Pool</span>
+              </button>
+              <button onClick={fetchQuestionHistory} className="bg-yellow-500 flex items-center space-x-2 mt-2">
+                <FaHistory />
+                <span>View Question History</span>
               </button>
             </div>
             {questions.totalMCQs > 0 && (
@@ -246,25 +285,19 @@ function Teacher({ token, role, setTokenId }) {  // Add setTokenId prop to pass 
                       </button>
                     </div>
                     {selectedQuestion === q && (
-                      <div className="ml-6 mt-2 p-2 border rounded">
+                      <div className="ml-6 mt-2 p-2 border rounded" dangerouslySetInnerHTML={{ __html: `
                         <p><strong>Options:</strong></p>
                         <ul>
-                          {q.options.map((opt, i) => (
-                            <li key={i} className={q.correctAnswer === opt ? 'text-green-500' : ''}>
-                              {i + 1}. {opt} {q.correctAnswer === opt && '(Correct)'}
-                            </li>
-                          ))}
+                          ${formatOptions(q.options).replace(/\n/g, '<br />')}
                         </ul>
-                        <p><strong>Context:</strong> {q.context}</p>
-                        <p><strong>Difficulty:</strong> {q.difficulty}</p>
-                        <button
-                          onClick={() => setSelectedQuestion(null)}
-                          className="mt-2 bg-gray-500 text-white p-1 rounded flex items-center space-x-1"
-                        >
+                        <p><strong>Correct Answer:</strong> ${q.correctAnswer}</p>
+                        <p><strong>Context:</strong> ${q.context}</p>
+                        <p><strong>Difficulty:</strong> ${q.difficulty}</p>
+                        <button onClick={() => setSelectedQuestion(null)} className="mt-2 bg-gray-500 text-white p-1 rounded flex items-center space-x-1">
                           <FaTimes />
                           <span>Close</span>
                         </button>
-                      </div>
+                      `}} />
                     )}
                   </div>
                 ))}
@@ -302,6 +335,46 @@ function Teacher({ token, role, setTokenId }) {  // Add setTokenId prop to pass 
                   </div>
                 ))}
               </>
+            )}
+            {questionHistory.length > 0 && (
+              <div className="mt-4">
+                <h4>Question History</h4>
+                {questionHistory.map((q, index) => (
+                  <div key={q._id} className="mb-4 p-2 border rounded">
+                    <p><strong>{index + 1}. {q.question}</strong> (Subject: {q.subject}, Difficulty: {q.difficulty})</p>
+                    {q.type === 'mcq' && (
+                      <div dangerouslySetInnerHTML={{ __html: `
+                        <p><strong>Options:</strong></p>
+                        <ul>
+                          ${formatOptions(q.options).replace(/\n/g, '<br />')}
+                        </ul>
+                        <p><strong>Correct Answer:</strong> ${q.correctAnswer}</p>
+                      `}} />
+                    )}
+                    {q.type === 'descriptive' && (
+                      <p><strong>Correct Answer:</strong> {q.correctAnswer}</p>
+                    )}
+                    <p><strong>Context:</strong> {q.context}</p>
+                    <h5>Student Performance:</h5>
+                    {q.studentPerformance.length > 0 ? (
+                      q.studentPerformance.map((perf, perfIndex) => (
+                        <div key={perfIndex} className="ml-4">
+                          <p><strong>Student:</strong> {perf.studentName}</p>
+                          <p><strong>Answer:</strong> {perf.answer}</p>
+                          {q.type === 'mcq' ? (
+                            <p><strong>Correct:</strong> {perf.isCorrect ? 'Yes' : 'No'} (Score: {perf.score}/{q.marks})</p>
+                          ) : (
+                            <p><strong>Similarity:</strong> {perf.similarity.toFixed(2)} (Score: {perf.score}/{q.marks})</p>
+                          )}
+                          <p><strong>Submitted At:</strong> {new Date(perf.submittedAt).toLocaleString()}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p>No student submissions yet.</p>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
             {(questions.totalMCQs > 0 || questions.totalDescriptive > 0) && (
               <>
@@ -367,10 +440,11 @@ function Teacher({ token, role, setTokenId }) {  // Add setTokenId prop to pass 
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
             <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
               <h3 className="text-lg font-bold mb-2">Upload Successful!</h3>
-              <p className="mb-4"><strong>Generated Token:</strong> {generatedToken}</p>
+              <p className="mb-2"><strong>Generated Token:</strong> {generatedToken}</p>
+              <p className="mb-4"><strong>Subject:</strong> {subject}</p>
               <div className="flex justify-center space-x-4">
                 <a
-                  href={`https://api.whatsapp.com/send?text=Here%20is%20my%20QMaster%20token:%20${generatedToken}`}
+                  href={`https://api.whatsapp.com/send?text=Here%20is%20my%20QMaster%20token:%20${generatedToken}%20(Subject:%20${subject})`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-green-500 text-white p-2 rounded flex items-center space-x-2"
@@ -379,7 +453,7 @@ function Teacher({ token, role, setTokenId }) {  // Add setTokenId prop to pass 
                   <span>Share via WhatsApp</span>
                 </a>
                 <a
-                  href={`mailto:?subject=QMaster%20Token&body=Here%20is%20my%20QMaster%20token:%20${generatedToken}`}
+                  href={`mailto:?subject=QMaster%20Token&body=Here%20is%20my%20QMaster%20token:%20${generatedToken}%20(Subject:%20${subject})`}
                   className="bg-red-500 text-white p-2 rounded flex items-center space-x-2"
                 >
                   <FaEnvelope />
