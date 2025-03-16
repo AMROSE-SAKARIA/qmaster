@@ -12,6 +12,7 @@ import QuestionHistory from './components/QuestionHistory.jsx';
 import About from './pages/About.jsx';
 import Signin from './pages/Signin.jsx';
 import Signup from './pages/Signup.jsx';
+import QuestionPool from './components/QuestionPool.jsx'; // Import the new component
 import './App.css';
 
 function App() {
@@ -69,7 +70,7 @@ function App() {
                 element={token ? <Leaderboard token={token} role={role} /> : <Navigate to="/signin" />}
               />
               <Route
-                path="/submissions/:tokenId/:studentName" // Updated route to include studentName
+                path="/submissions/:tokenId/:studentName"
                 element={token && role === 'teacher' ? <SubmissionReview token={token} role={role} /> : <Navigate to="/signin" />}
               />
               <Route
@@ -79,6 +80,10 @@ function App() {
               <Route
                 path="/teacher/question-history/:tokenId"
                 element={token && role === 'teacher' ? <QuestionHistory token={token} role={role} /> : <Navigate to="/signin" />}
+              />
+              <Route
+                path="/teacher/questions/:tokenId"
+                element={token && role === 'teacher' ? <QuestionPool token={token} /> : <Navigate to="/signin" />}
               />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>

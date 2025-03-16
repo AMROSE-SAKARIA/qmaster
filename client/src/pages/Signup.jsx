@@ -5,7 +5,9 @@ import { FaSignInAlt, FaUserPlus, FaKey } from 'react-icons/fa';
 
 function Signup() {
   const [username, setUsername] = useState('');
+  const [realName, setRealName] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
   const [otp, setOtp] = useState('');
@@ -15,10 +17,15 @@ function Signup() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      setMessage('Passwords do not match');
+      return;
+    }
     try {
       const res = await axios.post('http://localhost:5000/api/register', {
         username,
         password,
+        realName,
         role: role || 'student',
         email,
       });
@@ -35,6 +42,7 @@ function Signup() {
       const res = await axios.post('http://localhost:5000/api/verify-otp', {
         username,
         password,
+        realName,
         role: role || 'student',
         otp,
       });
@@ -73,6 +81,17 @@ function Signup() {
         ) : (
           <form onSubmit={handleRegister}>
             <div className="mb-4">
+              <label htmlFor="realName" className="block text-gray-700 mb-1">Real Name</label>
+              <input
+                type="text"
+                id="realName"
+                value={realName}
+                onChange={(e) => setRealName(e.target.value)}
+                placeholder="Real Name"
+                className="w-full"
+              />
+            </div>
+            <div className="mb-4">
               <label htmlFor="username" className="block text-gray-700 mb-1">Username</label>
               <input
                 type="text"
@@ -91,6 +110,17 @@ function Signup() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
+                className="w-full"
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="confirmPassword" className="block text-gray-700 mb-1">Confirm Password</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm Password"
                 className="w-full"
               />
             </div>

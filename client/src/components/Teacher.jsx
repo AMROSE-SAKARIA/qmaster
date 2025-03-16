@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { FaUpload, FaQuestionCircle, FaEye, FaCheckSquare, FaTrophy, FaUser, FaWhatsapp, FaEnvelope, FaTimes, FaHistory } from 'react-icons/fa';
+import { FaUpload, FaQuestionCircle, FaEye, FaTrophy, FaUser, FaWhatsapp, FaEnvelope, FaTimes, FaHistory } from 'react-icons/fa';
 
 function Teacher({ token, role, setTokenId }) {
   const [inputType, setInputType] = useState('text');
@@ -11,16 +11,12 @@ function Teacher({ token, role, setTokenId }) {
   const [numDescriptive, setNumDescriptive] = useState(3);
   const [mcqMarks, setMcqMarks] = useState(2);
   const [descriptiveMarks, setDescriptiveMarks] = useState(10);
-  const [desiredMCQs, setDesiredMCQs] = useState(5);
-  const [desiredDescriptive, setDesiredDescriptive] = useState(3);
   const [tokenId, setLocalTokenId] = useState('');
-  const [questions, setQuestions] = useState({ mcqs: [], descriptive: [], totalMCQs: 0, totalDescriptive: 0, subject: 'General' });
   const [message, setMessage] = useState('');
-  const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [generatedToken, setGeneratedToken] = useState('');
-  const [subject, setSubject] = useState('General'); // New: Subject state
-  const [questionHistory, setQuestionHistory] = useState([]); // New: Question history state
+  const [subject, setSubject] = useState('General');
+  const [questionHistory, setQuestionHistory] = useState([]);
   const navigate = useNavigate();
 
   // Redirect if not a teacher
@@ -34,7 +30,7 @@ function Teacher({ token, role, setTokenId }) {
     e.preventDefault();
     const formData = new FormData();
     formData.append('inputType', inputType);
-    formData.append('subject', subject); // Add subject to form data
+    formData.append('subject', subject);
 
     if (inputType === 'text') {
       if (!textContent.trim()) {
@@ -64,36 +60,12 @@ function Teacher({ token, role, setTokenId }) {
       });
       const newTokenId = res.data.token;
       setLocalTokenId(newTokenId);
-      setTokenId(newTokenId); // Pass token to parent component
+      setTokenId(newTokenId);
       setGeneratedToken(newTokenId);
       setShowTokenModal(true);
       setMessage('Content uploaded successfully');
     } catch (error) {
       setMessage(error.response?.data?.error || 'Upload failed');
-    }
-  };
-
-  const fetchQuestions = async () => {
-    if (!tokenId) return;
-    try {
-      const res = await axios.get(`http://localhost:5000/api/teacher/questions/${tokenId}`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      const { mcqs, descriptive, totalMCQs, totalDescriptive, subject: fetchedSubject } = res.data;
-      setQuestions({ mcqs, descriptive, totalMCQs, totalDescriptive, subject: fetchedSubject || 'General' });
-
-      if (totalMCQs < desiredMCQs) {
-        setMessage(`Warning: Only ${totalMCQs} valid MCQs available, but ${desiredMCQs} requested.`);
-        setDesiredMCQs(totalMCQs);
-      }
-      if (totalDescriptive < desiredDescriptive) {
-        setMessage(prev => prev ? `${prev} | Only ${totalDescriptive} valid Descriptive questions available, but ${desiredDescriptive} requested.` : `Only ${totalDescriptive} valid Descriptive questions available, but ${desiredDescriptive} requested.`);
-        setDesiredDescriptive(totalDescriptive);
-      } else {
-        setMessage('Questions fetched successfully');
-      }
-    } catch (error) {
-      setMessage(error.response?.data?.error || 'Failed to fetch questions');
     }
   };
 
@@ -110,39 +82,14 @@ function Teacher({ token, role, setTokenId }) {
     }
   };
 
-  const handleCreateTest = async () => {
-    if (desiredMCQs < 1 || desiredDescriptive < 1) {
-      setMessage('Desired MCQs and Descriptive questions must be at least 1.');
+  const handleFetchQuestions = () => {
+    if (!tokenId) {
+      setMessage('Please upload content first to generate a token.');
       return;
     }
-    if (desiredMCQs > questions.totalMCQs) {
-      setMessage(`Cannot create test: Only ${questions.totalMCQs} valid MCQs available, but ${desiredMCQs} requested.`);
-      return;
-    }
-    if (desiredDescriptive > questions.totalDescriptive) {
-      setMessage(`Cannot create test: Only ${questions.totalDescriptive} valid Descriptive questions available, but ${desiredDescriptive} requested.`);
-      return;
-    }
-
-    try {
-      const res = await axios.post('http://localhost:5000/api/teacher/create-test', {
-        token: tokenId,
-        desiredMCQs,
-        desiredDescriptive,
-      }, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      setMessage(`Test created! Token: ${res.data.testToken}`);
-    } catch (error) {
-      setMessage(error.response?.data?.error || 'Failed to create test');
-    }
+    navigate(`/teacher/questions/${tokenId}`);
   };
 
-  const handleViewResults = () => {
-    navigate(`/leaderboard/${tokenId}`);
-  };
-
-  // Format options with letters (a, b, c, d)
   const formatOptions = (options) => {
     return options.map((opt, index) => `${String.fromCharCode(97 + index)}. ${opt}`).join('<br />');
   };
@@ -160,7 +107,7 @@ function Teacher({ token, role, setTokenId }) {
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Enter subject (e.g., Math, Science)"
-              className="w-full"
+              className="w-full p-2 border rounded"
             />
           </div>
           <div className="mb-4">
@@ -172,7 +119,7 @@ function Teacher({ token, role, setTokenId }) {
                 setTextContent('');
                 setPdfFile(null);
               }}
-              className="w-full"
+              className="w-full p-2 border rounded"
             >
               <option value="text">Text</option>
               <option value="pdf">PDF</option>
@@ -186,7 +133,7 @@ function Teacher({ token, role, setTokenId }) {
                 value={textContent}
                 onChange={(e) => setTextContent(e.target.value)}
                 placeholder="Paste text for question generation (up to 3000 words)"
-                className="w-full"
+                className="w-full p-2 border rounded"
                 rows="5"
               />
             </div>
@@ -209,7 +156,7 @@ function Teacher({ token, role, setTokenId }) {
               value={numMCQs}
               onChange={(e) => setNumMCQs(e.target.value)}
               placeholder="Number of MCQs"
-              className="w-full"
+              className="w-full p-2 border rounded"
               min="1"
             />
           </div>
@@ -220,7 +167,7 @@ function Teacher({ token, role, setTokenId }) {
               value={numDescriptive}
               onChange={(e) => setNumDescriptive(e.target.value)}
               placeholder="Number of Descriptive Questions"
-              className="w-full"
+              className="w-full p-2 border rounded"
               min="1"
             />
           </div>
@@ -231,7 +178,7 @@ function Teacher({ token, role, setTokenId }) {
               value={mcqMarks}
               onChange={(e) => setMcqMarks(e.target.value)}
               placeholder="Marks per MCQ"
-              className="w-full"
+              className="w-full p-2 border rounded"
               min="1"
               step="0.5"
             />
@@ -243,7 +190,7 @@ function Teacher({ token, role, setTokenId }) {
               value={descriptiveMarks}
               onChange={(e) => setDescriptiveMarks(e.target.value)}
               placeholder="Marks per Descriptive"
-              className="w-full"
+              className="w-full p-2 border rounded"
               min="1"
               step="0.5"
             />
@@ -258,9 +205,9 @@ function Teacher({ token, role, setTokenId }) {
 
         {tokenId && (
           <>
-            <h3 className="mt-4">Token: {tokenId} | Subject: {questions.subject}</h3>
+            <h3 className="mt-4">Token: {tokenId} | Subject: {subject}</h3>
             <div className="flex justify-center space-x-4">
-              <button onClick={fetchQuestions} className="bg-green-500 flex items-center space-x-2 mt-2">
+              <button onClick={handleFetchQuestions} className="bg-green-500 flex items-center space-x-2 mt-2">
                 <FaQuestionCircle />
                 <span>Fetch Question Pool</span>
               </button>
@@ -269,73 +216,6 @@ function Teacher({ token, role, setTokenId }) {
                 <span>View Question History</span>
               </button>
             </div>
-            {questions.totalMCQs > 0 && (
-              <>
-                <h4 className="mt-4">MCQs in Question Pool (Available: {questions.totalMCQs})</h4>
-                {questions.mcqs.map((q, index) => (
-                  <div key={q._id} className="mb-2">
-                    <div className="flex items-center">
-                      <span>{index + 1}. {q.question}</span>
-                      <button
-                        onClick={() => setSelectedQuestion(q)}
-                        className="ml-2 bg-blue-500 text-white p-1 rounded text-sm flex items-center space-x-1"
-                      >
-                        <FaEye />
-                        <span>View Details</span>
-                      </button>
-                    </div>
-                    {selectedQuestion === q && (
-                      <div className="ml-6 mt-2 p-2 border rounded" dangerouslySetInnerHTML={{ __html: `
-                        <p><strong>Options:</strong></p>
-                        <ul>
-                          ${formatOptions(q.options).replace(/\n/g, '<br />')}
-                        </ul>
-                        <p><strong>Correct Answer:</strong> ${q.correctAnswer}</p>
-                        <p><strong>Context:</strong> ${q.context}</p>
-                        <p><strong>Difficulty:</strong> ${q.difficulty}</p>
-                        <button onClick={() => setSelectedQuestion(null)} className="mt-2 bg-gray-500 text-white p-1 rounded flex items-center space-x-1">
-                          <FaTimes />
-                          <span>Close</span>
-                        </button>
-                      `}} />
-                    )}
-                  </div>
-                ))}
-              </>
-            )}
-            {questions.totalDescriptive > 0 && (
-              <>
-                <h4 className="mt-4">Descriptive Questions in Question Pool (Available: {questions.totalDescriptive})</h4>
-                {questions.descriptive.map((q, index) => (
-                  <div key={q._id} className="mb-2">
-                    <div className="flex items-center">
-                      <span>{index + 1}. {q.question}</span>
-                      <button
-                        onClick={() => setSelectedQuestion(q)}
-                        className="ml-2 bg-blue-500 text-white p-1 rounded text-sm flex items-center space-x-1"
-                      >
-                        <FaEye />
-                        <span>View Details</span>
-                      </button>
-                    </div>
-                    {selectedQuestion === q && (
-                      <div className="ml-6 mt-2 p-2 border rounded">
-                        <p><strong>Answer:</strong> {q.correctAnswer}</p>
-                        <p><strong>Context:</strong> {q.context}</p>
-                        <p><strong>Difficulty:</strong> {q.difficulty}</p>
-                        <button
-                          onClick={() => setSelectedQuestion(null)}
-                          className="mt-2 bg-gray-500 text-white p-1 rounded flex items-center space-x-1"
-                        >
-                          <FaTimes />
-                          <span>Close</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </>
-            )}
             {questionHistory.length > 0 && (
               <div className="mt-4">
                 <h4>Question History</h4>
@@ -375,62 +255,6 @@ function Teacher({ token, role, setTokenId }) {
                   </div>
                 ))}
               </div>
-            )}
-            {(questions.totalMCQs > 0 || questions.totalDescriptive > 0) && (
-              <>
-                <div className="mt-4">
-                  <label className="block text-gray-700 mb-1">Desired MCQs for Test:</label>
-                  <input
-                    type="number"
-                    value={desiredMCQs}
-                    onChange={(e) => {
-                      const value = Number(e.target.value);
-                      if (value > questions.totalMCQs) {
-                        setMessage(`Cannot set desired MCQs to ${value}. Only ${questions.totalMCQs} valid MCQs available.`);
-                        setDesiredMCQs(questions.totalMCQs);
-                      } else {
-                        setDesiredMCQs(value);
-                      }
-                    }}
-                    placeholder="Desired MCQs for Test"
-                    className="w-full"
-                    min="1"
-                  />
-                </div>
-                <div className="mt-4">
-                  <label className="block text-gray-700 mb-1">Desired Descriptive Questions for Test:</label>
-                  <input
-                    type="number"
-                    value={desiredDescriptive}
-                    onChange={(e) => {
-                      const value = Number(e.target.value);
-                      if (value > questions.totalDescriptive) {
-                        setMessage(`Cannot set desired Descriptive questions to ${value}. Only ${questions.totalDescriptive} valid Descriptive questions available.`);
-                        setDesiredDescriptive(questions.totalDescriptive);
-                      } else {
-                        setDesiredDescriptive(value);
-                      }
-                    }}
-                    placeholder="Desired Descriptive for Test"
-                    className="w-full"
-                    min="1"
-                  />
-                </div>
-                <div className="flex justify-center space-x-4 mt-4">
-                  <button onClick={handleCreateTest} className="bg-blue-500 flex items-center space-x-2">
-                    <FaCheckSquare />
-                    <span>Create Test</span>
-                  </button>
-                  <button onClick={handleViewResults} className="bg-gray-500 flex items-center space-x-2">
-                    <FaTrophy />
-                    <span>View Results</span>
-                  </button>
-                  <button onClick={() => navigate('/profile')} className="bg-purple-500 flex items-center space-x-2">
-                    <FaUser />
-                    <span>View Profile</span>
-                  </button>
-                </div>
-              </>
             )}
           </>
         )}

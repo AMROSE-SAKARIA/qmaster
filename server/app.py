@@ -62,10 +62,10 @@ except OSError:
     logger.error("spaCy model 'en_core_web_sm' not found. Please install it using: python -m spacy download en_core_web_sm")
     exit(1)
 
-def send_otp_email(to_email, otp):
+def send_otp_email(to_email, otp, otp_type="registration"):  # Default otp_type to "registration"
     try:
-        msg = MIMEText(f"Your OTP for QMaster registration is: {otp}\nIt expires in 10 minutes.")
-        msg['Subject'] = 'QMaster Registration OTP'
+        msg = MIMEText(f"Your OTP for QMaster {otp_type} is: {otp}\nIt expires in 10 minutes.")
+        msg['Subject'] = f'QMaster {otp_type.replace("_", " ").title()} OTP'
         msg['From'] = EMAIL_USER
         msg['To'] = to_email
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
@@ -102,14 +102,18 @@ def setup_user():
     password = data.get('password', 'password123')
     role = data.get('role', 'teacher')
     email = data.get('email', '')
+    real_name = data.get('realName', username)  # Default to username if realName not provided
     if users.find_one({"username": {"$regex": f"^{username}$", "$options": "i"}}):
         return jsonify({"error": "Username taken"}), 400
+    if users.find_one({"email": email}) and email:
+        return jsonify({"error": "Email already in use"}), 400
     hashed = hashpw(password.encode('utf-8'), gensalt()).decode('utf-8')
     users.insert_one({
         "username": username,
         "password": hashed,
         "role": role,
         "email": email,
+        "realName": real_name,
         "createdAt": datetime.now(),
         "conductedTests": [] if role == "teacher" else None,
         "attendedTests": [] if role == "student" else None
@@ -124,12 +128,15 @@ def register():
     password = data.get('password')
     role = data.get('role', 'student')
     email = data.get('email')
+    real_name = data.get('realName', username)
     if not all([username, password, email]) or users.find_one({"username": {"$regex": f"^{username}$", "$options": "i"}}):
         return jsonify({"error": "Username taken or invalid data"}), 400
+    if users.find_one({"email": email}):
+        return jsonify({"error": "Email already in use"}), 400
     otp = str(random.randint(100000, 999999))
-    otps[username] = {"otp": otp, "expires": datetime.now() + timedelta(minutes=10), "email": email, "password": password, "role": role}
+    otps[username] = {"otp": otp, "expires": datetime.now() + timedelta(minutes=10), "email": email, "password": password, "role": role, "realName": real_name}
     try:
-        send_otp_email(email, otp)
+        send_otp_email(email, otp, otp_type="registration")  # Pass otp_type
     except Exception as e:
         return jsonify({"error": f"Failed to send OTP email: {e}"}), 500
     return jsonify({"message": f"OTP sent to {email}"}), 200
@@ -145,12 +152,14 @@ def verify_otp():
     email = stored['email']
     password = stored['password']
     role = stored['role']
+    real_name = stored['realName']
     hashed = hashpw(password.encode('utf-8'), gensalt()).decode('utf-8')
     users.insert_one({
         "username": username,
         "password": hashed,
         "role": role,
         "email": email,
+        "realName": real_name,
         "createdAt": datetime.now(),
         "conductedTests": [] if role == "teacher" else None,
         "attendedTests": [] if role == "student" else None
@@ -204,6 +213,7 @@ def get_profile():
     profile = {
         "username": user['username'],
         "email": user.get('email', 'Not registered'),
+        "realName": user.get('realName', 'Not provided'),
         "role": user['role'],
         "conductedTests": user.get('conductedTests', []) if user['role'] == 'teacher' else [],
         "attendedTests": user.get('attendedTests', []) if user['role'] == 'student' else []
@@ -212,6 +222,93 @@ def get_profile():
         if '_id' in item:
             item['_id'] = str(item['_id'])
     return jsonify(profile), 200
+
+@app.route('/api/profile/update', methods=['PUT'])
+def update_profile():
+    auth_token = request.headers.get('Authorization')
+    if not auth_token or not auth_token.startswith('Bearer '):
+        return jsonify({"error": "No token provided"}), 401
+    payload = authenticate(auth_token[7:])
+    if not payload:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.get_json()
+    new_real_name = data.get('realName')
+    new_email = data.get('email')
+    new_password = data.get('password')
+
+    user = users.find_one({"_id": ObjectId(payload['id'])})
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    update_data = {}
+    if new_real_name and new_real_name != user.get('realName'):
+        update_data['realName'] = new_real_name
+    if new_email and new_email != user.get('email'):
+        if users.find_one({"email": new_email}):
+            return jsonify({"error": "Email already in use"}), 400
+        update_data['email'] = new_email
+    if new_password:
+        hashed = hashpw(new_password.encode('utf-8'), gensalt()).decode('utf-8')
+        update_data['password'] = hashed
+
+    if update_data:
+        users.update_one({"_id": ObjectId(payload['id'])}, {"$set": update_data})
+        logger.info(f"Profile updated for user {payload['username']}")
+        return jsonify({"message": "Profile updated successfully"}), 200
+    return jsonify({"message": "No changes made"}), 200
+
+@app.route('/api/profile/delete', methods=['DELETE'])
+def delete_profile():
+    auth_token = request.headers.get('Authorization')
+    if not auth_token or not auth_token.startswith('Bearer '):
+        return jsonify({"error": "No token provided"}), 401
+    payload = authenticate(auth_token[7:])
+    if not payload:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    result = users.delete_one({"_id": ObjectId(payload['id'])})
+    if result.deleted_count > 0:
+        logger.info(f"Profile deleted for user {payload['username']}")
+        return jsonify({"message": "Profile deleted successfully"}), 200
+    return jsonify({"error": "User not found"}), 404
+
+@app.route('/api/forgot-password', methods=['POST'])
+def forgot_password():
+    data = request.get_json()
+    username = data.get('username')
+    user = users.find_one({"username": {"$regex": f"^{username}$", "$options": "i"}})
+    if not user or not user.get('email'):
+        return jsonify({"error": "User not found or email not registered"}), 404
+
+    otp = str(random.randint(100000, 999999))
+    otps[username] = {"otp": otp, "expires": datetime.now() + timedelta(minutes=10), "email": user['email'], "otp_type": "password_reset"}
+    try:
+        send_otp_email(user['email'], otp, otp_type="password_reset")  # Pass otp_type
+    except Exception as e:
+        return jsonify({"error": f"Failed to send OTP email: {e}"}), 500
+    return jsonify({"message": f"OTP sent to {user['email']} for password reset"}), 200
+
+@app.route('/api/reset-password', methods=['POST'])
+def reset_password():
+    data = request.get_json()
+    username = data.get('username')
+    otp = data.get('otp')
+    new_password = data.get('newPassword')
+    confirm_password = data.get('confirmPassword')
+
+    if new_password != confirm_password:
+        return jsonify({"error": "Passwords do not match"}), 400
+
+    stored = otps.get(username)
+    if not stored or stored['otp'] != otp or stored['expires'] < datetime.now():
+        return jsonify({"error": "Invalid or expired OTP"}), 400
+
+    hashed = hashpw(new_password.encode('utf-8'), gensalt()).decode('utf-8')
+    users.update_one({"username": {"$regex": f"^{username}$", "$options": "i"}}, {"$set": {"password": hashed}})
+    del otps[username]
+    logger.info(f"Password reset successfully for user {username}")
+    return jsonify({"message": "Password reset successfully"}), 200
 
 @app.route('/api/upload-content', methods=['POST'])
 def upload_content():
@@ -733,7 +830,6 @@ def debug_password():
         logger.error(f"Error during password comparison: {e}")
         return jsonify({"error": f"Password comparison failed: {e}"}), 500
     return jsonify({"generatedHash": hashed, "match": match}), 200
-
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     app.json_encoder = mongo_to_json
