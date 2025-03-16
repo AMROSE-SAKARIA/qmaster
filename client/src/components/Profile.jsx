@@ -78,7 +78,7 @@ function Profile({ token, role }) {
             <>
               <p className="mb-2"><strong>Username:</strong> {profile.username}</p>
               <p className="mb-2"><strong>Email:</strong> {profile.email}</p>
-              <p className="mb-2"><strong>Real Name:</strong> {profile.realName}</p>
+              <p className="mb-2"><strong>Name:</strong> {profile.realName}</p>
               <p className="mb-4"><strong>Role:</strong> {profile.role}</p>
               {role === 'teacher' && profile.conductedTests.length > 0 && (
                 <div>
@@ -170,9 +170,7 @@ function Profile({ token, role }) {
             </form>
           )}
           {message && <p className={`text-center mt-4 ${message.includes('success') ? 'text-green-500' : 'text-red-500'}`}>{message}</p>}
-          <button onClick={() => navigate('/')} className="mt-4 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
-            Back
-          </button>
+          
         </div>
       </div>
     </div>

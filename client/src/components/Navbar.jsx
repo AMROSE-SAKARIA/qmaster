@@ -15,7 +15,7 @@ function Navbar({ token, setToken, setRole, role, tokenId }) {
   };
 
   return (
-    <nav className="bg-gray-800 text-white p-4">
+    <nav className="bg-blue-800 text-white p-4">
       <div className="container mx-auto flex justify-between items-center">
         <Link to="/" className="text-xl font-bold">QMaster</Link>
         <div className="flex space-x-6 text-lg font-medium">
