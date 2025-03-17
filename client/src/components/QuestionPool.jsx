@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FaEye, FaCheckSquare, FaTrophy, FaUser, FaWhatsapp, FaEnvelope, FaTimes } from 'react-icons/fa';
+import { FaEye, FaCheckSquare, FaTrophy, FaUser, FaWhatsapp, FaEnvelope, FaTimes, FaCopy } from 'react-icons/fa';
 
 function QuestionPool({ token }) {
   const { tokenId } = useParams(); // Get tokenId from URL
@@ -38,7 +38,7 @@ function QuestionPool({ token }) {
           setDesiredMCQs(totalMCQs);
         }
         if (totalDescriptive < desiredDescriptive) {
-          
+          setMessage(`Warning: Only ${totalDescriptive} valid Descriptive questions available, but ${desiredDescriptive} requested.`);
           setDesiredDescriptive(totalDescriptive);
         } else {
           setMessage('Questions fetched successfully');
@@ -88,6 +88,17 @@ function QuestionPool({ token }) {
 
   const formatOptions = (options) => {
     return options.map((opt, index) => `${String.fromCharCode(97 + index)}. ${opt}`).join('<br />');
+  };
+
+  const handleCopyToken = () => {
+    navigator.clipboard.writeText(testToken)
+      .then(() => {
+        setMessage('Test token copied to clipboard!');
+        setTimeout(() => setMessage(''), 2000); // Clear message after 2 seconds
+      })
+      .catch((err) => {
+        setMessage('Failed to copy token to clipboard.');
+      });
   };
 
   if (loading) {
@@ -311,7 +322,18 @@ function QuestionPool({ token }) {
             <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
               <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
                 <h3 className="text-lg font-bold mb-2">Test Created Successfully!</h3>
-                <p className="mb-2"><strong>Test Token:</strong> {testToken}</p>
+                <p className="mb-2">
+                  <strong>Test Token:</strong>{' '}
+                  <span className="inline-flex items-center">
+                    {testToken}
+                    <button
+                      onClick={handleCopyToken}
+                      className="ml-2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                    >
+                      <FaCopy />
+                    </button>
+                  </span>
+                </p>
                 <p className="mb-4"><strong>Subject:</strong> {questions.subject}</p>
                 <div className="flex justify-center space-x-4">
                   <a
