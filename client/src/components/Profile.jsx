@@ -3,13 +3,16 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FaEye, FaEdit, FaTrash } from 'react-icons/fa';
 
-function Profile({ token, role }) {
+function Profile({ token, role, setToken, setRole }) {
   const [profile, setProfile] = useState(null);
   const [message, setMessage] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [newRealName, setNewRealName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSentFor, setOtpSentFor] = useState(null); // 'update' or 'delete'
+  const [isOtpSent, setIsOtpSent] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,18 +31,39 @@ function Profile({ token, role }) {
     fetchProfile();
   }, [token]);
 
+  const requestOtp = async (action) => {
+    try {
+      const res = await axios.post('http://localhost:5000/api/request-profile-otp', { action }, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      setMessage(res.data.message);
+      setIsOtpSent(true);
+      setOtpSentFor(action);
+    } catch (error) {
+      setMessage(error.response?.data?.error || 'Failed to send OTP');
+    }
+  };
+
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
+    if (!otp) {
+      setMessage('Please enter the OTP');
+      return;
+    }
     try {
       const res = await axios.put('http://localhost:5000/api/profile/update', {
         realName: newRealName,
         email: newEmail,
         password: newPassword || undefined,
+        otp, // Include OTP in the request
       }, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       setMessage(res.data.message);
       setIsEditing(false);
+      setIsOtpSent(false);
+      setOtp('');
+      setOtpSentFor(null);
       const updatedProfile = await axios.get('http://localhost:5000/api/profile', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -50,16 +74,26 @@ function Profile({ token, role }) {
   };
 
   const handleDeleteProfile = async () => {
-    if (window.confirm('Are you sure you want to delete your profile? This action cannot be undone.')) {
-      try {
-        const res = await axios.delete('http://localhost:5000/api/profile/delete', {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        setMessage(res.data.message);
-        navigate('/signin');
-      } catch (error) {
-        setMessage(error.response?.data?.error || 'Failed to delete profile');
-      }
+    if (!otp) {
+      setMessage('Please enter the OTP');
+      return;
+    }
+    try {
+      const res = await axios.delete('http://localhost:5000/api/profile/delete', {
+        headers: { 'Authorization': `Bearer ${token}` },
+        data: { otp }, // Include OTP in the request
+      });
+      setMessage(res.data.message);
+      // Perform logout: Clear localStorage and parent state
+      localStorage.removeItem('token');
+      localStorage.removeItem('role');
+      localStorage.removeItem('latestToken');
+      setToken(''); // Clear token in App.jsx state
+      setRole('');  // Clear role in App.jsx state
+      // Redirect to home page
+      navigate('/');
+    } catch (error) {
+      setMessage(error.response?.data?.error || 'Failed to delete profile');
     }
   };
 
@@ -116,14 +150,54 @@ function Profile({ token, role }) {
                 </div>
               )}
               <div className="flex space-x-2 mt-4">
-                <button onClick={() => setIsEditing(true)} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center space-x-1">
-                  <FaEdit />
-                  <span>Edit Profile</span>
-                </button>
-                <button onClick={handleDeleteProfile} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 flex items-center space-x-1">
-                  <FaTrash />
-                  <span>Delete Profile</span>
-                </button>
+                {isOtpSent && otpSentFor === 'update' ? (
+                  <>
+                    <div className="mb-4">
+                      <label htmlFor="otp" className="block text-gray-700 mb-1">Enter OTP</label>
+                      <input
+                        type="text"
+                        id="otp"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        placeholder="Enter OTP"
+                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <button onClick={() => setIsEditing(true)} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center space-x-1">
+                      <FaEdit />
+                      <span>Proceed to Edit</span>
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={() => requestOtp('update')} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center space-x-1">
+                    <FaEdit />
+                    <span>Edit Profile</span>
+                  </button>
+                )}
+                {isOtpSent && otpSentFor === 'delete' ? (
+                  <>
+                    <div className="mb-4">
+                      <label htmlFor="otp" className="block text-gray-700 mb-1">Enter OTP</label>
+                      <input
+                        type="text"
+                        id="otp"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        placeholder="Enter OTP"
+                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <button onClick={handleDeleteProfile} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 flex items-center space-x-1">
+                      <FaTrash />
+                      <span>Confirm Delete</span>
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={() => requestOtp('delete')} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 flex items-center space-x-1">
+                    <FaTrash />
+                    <span>Delete Profile</span>
+                  </button>
+                )}
               </div>
             </>
           ) : (
@@ -170,7 +244,6 @@ function Profile({ token, role }) {
             </form>
           )}
           {message && <p className={`text-center mt-4 ${message.includes('success') ? 'text-green-500' : 'text-red-500'}`}>{message}</p>}
-          
         </div>
       </div>
     </div>

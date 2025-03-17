@@ -9,7 +9,7 @@ import SignUp from './pages/Signup.jsx';
 import StudentDashboard from './pages/StudentDashboard.jsx';
 import StudentResults from './pages/StudentResults.jsx';
 import QuestionPool from './components/QuestionPool.jsx';
-import Profile from './components/Profile.jsx';
+import Profile from './components/Profile.jsx'; // Ensure this import is correct
 import Teacher from './components/Teacher.jsx';
 import Leaderboard from './components/Leaderboard.jsx';
 import SubmissionReview from './components/SubmissionReview.jsx';
@@ -81,7 +81,7 @@ function App() {
               />
               <Route
                 path="/profile"
-                element={token ? <Profile token={token} role={role} /> : <Navigate to="/signin" />}
+                element={token ? <Profile token={token} role={role} setToken={setToken} setRole={setRole} /> : <Navigate to="/signin" />}
               />
               <Route
                 path="/leaderboard/:token"

@@ -244,26 +244,36 @@ def verify_otp():
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
-    username = data.get('username')
+    identifier = data.get('username')  # This could be username or email
     password = data.get('password')
-    logger.info(f"Attempting login for username: {username}")
-    user = users.find_one({"username": {"$regex": f"^{username}$", "$options": "i"}})
+    logger.info(f"Attempting login for identifier: {identifier}")
+    
+    # Check if the identifier is an email or username
+    user = None
+    if '@' in identifier:  # Assuming identifier with '@' is an email
+        user = users.find_one({"email": identifier})
+    else:  # Treat as username
+        user = users.find_one({"username": {"$regex": f"^{identifier}$", "$options": "i"}})
+    
     if not user:
-        logger.info(f"User {username} not found in the database")
+        logger.info(f"No user found for identifier: {identifier}")
         return jsonify({"error": "Invalid credentials"}), 401
+    
     try:
         password_match = checkpw(password.encode('utf-8'), user['password'].encode('utf-8'))
     except Exception as e:
         logger.error(f"Error during password comparison: {e}")
         return jsonify({"error": "Password verification failed"}), 500
+    
     if not password_match:
-        logger.info("Password does not match")
+        logger.info(f"Password does not match for identifier: {identifier}")
         return jsonify({"error": "Invalid credentials"}), 401
+    
     expiration_time = int(time.time() + JWT_EXPIRATION.total_seconds())
     payload = {
         "id": str(user['_id']),
         "role": user['role'],
-        "username": username,
+        "username": user['username'],
         "exp": expiration_time
     }
     token = encode(payload, JWT_SECRET, algorithm="HS256")
@@ -302,6 +312,36 @@ def get_profile():
         if '_id' in item:
             item['_id'] = str(item['_id'])
     return jsonify(profile), 200
+@app.route('/api/request-profile-otp', methods=['POST'])
+def request_profile_otp():
+    auth_token = request.headers.get('Authorization')
+    if not auth_token or not auth_token.startswith('Bearer '):
+        return jsonify({"error": "No token provided"}), 401
+    payload = authenticate(auth_token[7:])
+    if not payload:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    user = users.find_one({"_id": ObjectId(payload['id'])})
+    if not user or not user.get('email'):
+        return jsonify({"error": "User not found or email not registered"}), 404
+
+    otp = str(random.randint(100000, 999999))
+    action = request.get_json().get('action')  # 'update' or 'delete'
+    if action not in ['update', 'delete']:
+        return jsonify({"error": "Invalid action specified"}), 400
+
+    otps[payload['username']] = {
+        "otp": otp,
+        "expires": datetime.now() + timedelta(minutes=10),
+        "email": user['email'],
+        "otp_type": f"profile_{action}",
+        "action": action
+    }
+    try:
+        send_otp_email(user['email'], otp, otp_type=f"profile_{action}")
+    except Exception as e:
+        return jsonify({"error": f"Failed to send OTP email: {e}"}), 500
+    return jsonify({"message": f"OTP sent to {user['email']} for profile {action}"}), 200
 
 @app.route('/api/profile/update', methods=['PUT'])
 def update_profile():
@@ -313,9 +353,15 @@ def update_profile():
         return jsonify({"error": "Unauthorized"}), 403
 
     data = request.get_json()
+    otp = data.get('otp')  # OTP provided by the user
     new_real_name = data.get('realName')
     new_email = data.get('email')
     new_password = data.get('password')
+
+    # Verify OTP
+    stored = otps.get(payload['username'])
+    if not stored or stored['otp'] != otp or stored['expires'] < datetime.now() or stored['action'] != 'update':
+        return jsonify({"error": "Invalid or expired OTP"}), 400
 
     user = users.find_one({"_id": ObjectId(payload['id'])})
     if not user:
@@ -335,8 +381,13 @@ def update_profile():
     if update_data:
         users.update_one({"_id": ObjectId(payload['id'])}, {"$set": update_data})
         logger.info(f"Profile updated for user {payload['username']}")
+        # Clear the OTP after successful update
+        del otps[payload['username']]
         return jsonify({"message": "Profile updated successfully"}), 200
+    # Clear the OTP even if no changes were made
+    del otps[payload['username']]
     return jsonify({"message": "No changes made"}), 200
+   
 
 @app.route('/api/profile/delete', methods=['DELETE'])
 def delete_profile():
@@ -347,9 +398,19 @@ def delete_profile():
     if not payload:
         return jsonify({"error": "Unauthorized"}), 403
 
+    data = request.get_json() or {}
+    otp = data.get('otp')  # OTP provided by the user
+
+    # Verify OTP
+    stored = otps.get(payload['username'])
+    if not stored or stored['otp'] != otp or stored['expires'] < datetime.now() or stored['action'] != 'delete':
+        return jsonify({"error": "Invalid or expired OTP"}), 400
+
     result = users.delete_one({"_id": ObjectId(payload['id'])})
     if result.deleted_count > 0:
         logger.info(f"Profile deleted for user {payload['username']}")
+        # Clear the OTP after successful deletion
+        del otps[payload['username']]
         return jsonify({"message": "Profile deleted successfully"}), 200
     return jsonify({"error": "User not found"}), 404
 

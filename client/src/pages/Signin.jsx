@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaSignInAlt, FaUserPlus, FaKey } from 'react-icons/fa';
 
 function Signin({ setToken, setRole }) {
-  const [username, setUsername] = useState('');
+  const [identifier, setIdentifier] = useState(''); // Changed from username to identifier
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [forgotPassword, setForgotPassword] = useState(false);
@@ -19,7 +19,7 @@ function Signin({ setToken, setRole }) {
     e.preventDefault();
     try {
       const res = await axios.post('http://localhost:5000/api/login', {
-        username,
+        username: identifier, // Send identifier as username (backend handles email/username)
         password,
       });
       setToken(res.data.token);
@@ -27,9 +27,12 @@ function Signin({ setToken, setRole }) {
       localStorage.setItem('token', res.data.token); // Persist token
       localStorage.setItem('role', res.data.role);   // Persist role
       setMessage('Login successful');
-      navigate('/');
+      // Navigate directly to the respective dashboard based on role
+      navigate(res.data.role === 'teacher' ? '/teacher' : '/student');
     } catch (error) {
-      setMessage(error.response?.data?.error || 'Login failed');
+      // Specific error message for invalid credentials
+      const errorMessage = error.response?.data?.error || 'Invalid username, email, or password';
+      setMessage(errorMessage);
     }
   };
 
@@ -78,13 +81,13 @@ function Signin({ setToken, setRole }) {
         {!forgotPassword ? (
           <form onSubmit={handleLogin}>
             <div className="mb-4">
-              <label htmlFor="username" className="block text-gray-700 mb-1">Username</label>
+              <label htmlFor="identifier" className="block text-gray-700 mb-1">Username or Email</label>
               <input
                 type="text"
-                id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Username"
+                id="identifier"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="Username or Email"
                 className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -109,8 +112,13 @@ function Signin({ setToken, setRole }) {
                 <span>Go to Register</span>
               </button>
             </div>
+            {message && (
+              <p className={`text-center mt-4 ${message === 'Login successful' ? 'text-green-500' : 'text-red-500'}`}>
+                {message}
+              </p>
+            )}
             <p
-              className="text-center mt-4 text-blue-500 cursor-pointer hover:underline"
+              className="text-center mt-2 text-blue-500 cursor-pointer hover:underline"
               onClick={() => setForgotPassword(true)}
             >
               Forgot Password?

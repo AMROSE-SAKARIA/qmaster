@@ -10,7 +10,6 @@ import {
   FaWhatsapp,
   FaEnvelope,
   FaTimes,
-  FaEye,
 } from 'react-icons/fa';
 
 function Teacher({ token, role, updateLatestToken }) {
@@ -29,18 +28,8 @@ function Teacher({ token, role, updateLatestToken }) {
       numDescriptive: 3,
       mcqMarks: 2,
       descriptiveMarks: 10,
-      desiredMCQs: 5,
-      desiredDescriptive: 3,
       tokenId: '',
-      questions: {
-        mcqs: [],
-        descriptive: [],
-        totalMCQs: 0,
-        totalDescriptive: 0,
-        subject: 'General',
-      },
       message: '',
-      selectedQuestion: null,
       showTokenModal: false,
       generatedToken: '',
       subject: 'General',
@@ -58,12 +47,8 @@ function Teacher({ token, role, updateLatestToken }) {
     numDescriptive,
     mcqMarks,
     descriptiveMarks,
-    desiredMCQs,
-    desiredDescriptive,
     tokenId,
-    questions,
     message,
-    selectedQuestion,
     showTokenModal,
     generatedToken,
     subject,
@@ -87,18 +72,8 @@ function Teacher({ token, role, updateLatestToken }) {
       numDescriptive: 3,
       mcqMarks: 2,
       descriptiveMarks: 10,
-      desiredMCQs: 5,
-      desiredDescriptive: 3,
       tokenId: '',
-      questions: {
-        mcqs: [],
-        descriptive: [],
-        totalMCQs: 0,
-        totalDescriptive: 0,
-        subject: 'General',
-      },
       message: '',
-      selectedQuestion: null,
       showTokenModal: false,
       generatedToken: '',
       subject: 'General',
@@ -210,73 +185,13 @@ function Teacher({ token, role, updateLatestToken }) {
     }
   };
 
-  const fetchQuestions = async () => {
-    try {
-      const res = await axios.get(`http://localhost:5000/api/teacher/questions/${tokenId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const { mcqs, descriptive, totalMCQs, totalDescriptive, subject: fetchedSubject } = res.data;
-      updateState({
-        questions: { mcqs, descriptive, totalMCQs, totalDescriptive, subject: fetchedSubject },
-        message: 'Questions fetched successfully',
-      });
-
-      if (totalMCQs < desiredMCQs) {
-        updateState({
-          message: `Warning: Only ${totalMCQs} valid MCQs available, but ${desiredMCQs} requested.`,
-          desiredMCQs: totalMCQs,
-        });
-      }
-      if (totalDescriptive < desiredDescriptive) {
-        updateState({
-          message: prevMessage =>
-            prevMessage
-              ? `${prevMessage} | Only ${totalDescriptive} valid Descriptive questions available, but ${desiredDescriptive} requested.`
-              : `Only ${totalDescriptive} valid Descriptive questions available, but ${desiredDescriptive} requested.`,
-          desiredDescriptive: totalDescriptive,
-        });
-      }
-    } catch (error) {
-      updateState({ message: error.response?.data?.error || 'Failed to fetch questions' });
-    }
-  };
-
-  const handleCreateTest = async () => {
-    if (desiredMCQs < 1 || desiredDescriptive < 1) {
-      updateState({ message: 'Desired MCQs and Descriptive questions must be at least 1.' });
+  const handleFetchQuestions = () => {
+    if (!tokenId) {
+      updateState({ message: 'Please upload content and wait for processing to complete before fetching questions.' });
       return;
     }
-    if (desiredMCQs > questions.totalMCQs) {
-      updateState({
-        message: `Cannot create test: Only ${questions.totalMCQs} valid MCQs available, but ${desiredMCQs} requested.`,
-      });
-      return;
-    }
-    if (desiredDescriptive > questions.totalDescriptive) {
-      updateState({
-        message: `Cannot create test: Only ${questions.totalDescriptive} valid Descriptive questions available, but ${desiredDescriptive} requested.`,
-      });
-      return;
-    }
-
-    try {
-      const res = await axios.post(
-        'http://localhost:5000/api/teacher/create-test',
-        {
-          token: tokenId,
-          desiredMCQs,
-          desiredDescriptive,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-      updateLatestToken(res.data.testToken);
-      updateState({ message: `Test created! Token: ${res.data.testToken}` });
-      clearState(); // Clear state after creating a test
-    } catch (error) {
-      updateState({ message: error.response?.data?.error || 'Failed to create test' });
-    }
+    // Navigate to QuestionPool component instead of fetching questions here
+    navigate(`/teacher/questions/${tokenId}`);
   };
 
   const handleViewResults = () => {
@@ -358,10 +273,10 @@ function Teacher({ token, role, updateLatestToken }) {
                 id="numMCQs"
                 type="number"
                 value={numMCQs}
-                onChange={(e) => updateState({ numMCQs: Math.max(1, e.target.value) })}
+                onChange={(e) => updateState({ numMCQs: Math.max(e.target.value) })}
                 placeholder="Number of MCQs"
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                min="1"
+                
               />
             </div>
             <div>
@@ -372,10 +287,10 @@ function Teacher({ token, role, updateLatestToken }) {
                 id="numDescriptive"
                 type="number"
                 value={numDescriptive}
-                onChange={(e) => updateState({ numDescriptive: Math.max(1, e.target.value) })}
+                onChange={(e) => updateState({ numDescriptive: Math.max(e.target.value) })}
                 placeholder="Number of Descriptive Questions"
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                min="1"
+                
               />
             </div>
             <div>
@@ -431,174 +346,32 @@ function Teacher({ token, role, updateLatestToken }) {
           {tokenId && (
             <div className="mt-6">
               <h3 className="text-xl font-semibold text-gray-700 mb-4">
-                Token: {tokenId} | Subject: {questions.subject}
+                Token: {tokenId} | Subject: {subject}
               </h3>
               <button
-                onClick={fetchQuestions}
+                onClick={handleFetchQuestions}
                 className="bg-green-600 text-white p-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 mb-4 flex items-center space-x-2"
               >
                 <FaQuestionCircle />
                 <span>Fetch Question Pool</span>
               </button>
 
-              {questions.totalMCQs > 0 && (
-                <div>
-                  <h4 className="text-lg font-medium text-gray-700 mb-2">
-                    MCQs in Question Pool (Available: {questions.totalMCQs})
-                  </h4>
-                  {questions.mcqs.map((q, index) => (
-                    <div key={q._id} className="mb-2">
-                      <div className="flex items-center">
-                        <span className="text-gray-800">{index + 1}. {q.question}</span>
-                        <button
-                          onClick={() => updateState({ selectedQuestion: q })}
-                          className="ml-2 bg-blue-600 text-white p-1 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-sm flex items-center space-x-1"
-                        >
-                          <FaEye />
-                          <span>View Details</span>
-                        </button>
-                      </div>
-                      {selectedQuestion === q && (
-                        <div className="ml-6 mt-2 p-4 bg-gray-50 rounded-md border">
-                          <p className="font-medium">Options:</p>
-                          <ul className="list-decimal ml-5 mt-1">
-                            {q.options.map((opt, i) => (
-                              <li
-                                key={i}
-                                className={q.correctAnswer === opt ? 'text-green-600' : 'text-gray-800'}
-                              >
-                                {i + 1}. {opt} {q.correctAnswer === opt && '(Correct)'}
-                              </li>
-                            ))}
-                          </ul>
-                          <p className="mt-2"><strong>Context:</strong> {q.context}</p>
-                          <p className="mt-1"><strong>Difficulty:</strong> {q.difficulty}</p>
-                          <button
-                            onClick={() => updateState({ selectedQuestion: null })}
-                            className="mt-2 bg-gray-500 text-white p-1 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 flex items-center space-x-1"
-                          >
-                            <FaTimes />
-                            <span>Close</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {questions.totalDescriptive > 0 && (
-                <div>
-                  <h4 className="text-lg font-medium text-gray-700 mb-2">
-                    Descriptive Questions in Question Pool (Available: {questions.totalDescriptive})
-                  </h4>
-                  {questions.descriptive.map((q, index) => (
-                    <div key={q._id} className="mb-2">
-                      <div className="flex items-center">
-                        <span className="text-gray-800">{index + 1}. {q.question}</span>
-                        <button
-                          onClick={() => updateState({ selectedQuestion: q })}
-                          className="ml-2 bg-blue-600 text-white p-1 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-sm flex items-center space-x-1"
-                        >
-                          <FaEye />
-                          <span>View Details</span>
-                        </button>
-                      </div>
-                      {selectedQuestion === q && (
-                        <div className="ml-6 mt-2 p-4 bg-gray-50 rounded-md border">
-                          <p className="font-medium"><strong>Answer:</strong> {q.correctAnswer}</p>
-                          <p className="mt-1"><strong>Context:</strong> {q.context}</p>
-                          <p className="mt-1"><strong>Difficulty:</strong> {q.difficulty}</p>
-                          <button
-                            onClick={() => updateState({ selectedQuestion: null })}
-                            className="mt-2 bg-gray-500 text-white p-1 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 flex items-center space-x-1"
-                          >
-                            <FaTimes />
-                            <span>Close</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {(questions.totalMCQs > 0 || questions.totalDescriptive > 0) && (
-                <div className="mt-6 space-y-4">
-                  <div>
-                    <label htmlFor="desiredMCQs" className="block text-sm font-medium text-gray-700">
-                      Desired MCQs for Test
-                    </label>
-                    <input
-                      id="desiredMCQs"
-                      type="number"
-                      value={desiredMCQs}
-                      onChange={(e) => {
-                        const value = Number(e.target.value);
-                        if (value > questions.totalMCQs) {
-                          updateState({
-                            message: `Cannot set desired MCQs to ${value}. Only ${questions.totalMCQs} valid MCQs available.`,
-                            desiredMCQs: questions.totalMCQs,
-                          });
-                        } else {
-                          updateState({ desiredMCQs: value });
-                        }
-                      }}
-                      placeholder="Desired MCQs for Test"
-                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      min="1"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="desiredDescriptive" className="block text-sm font-medium text-gray-700">
-                      Desired Descriptive Questions for Test
-                    </label>
-                    <input
-                      id="desiredDescriptive"
-                      type="number"
-                      value={desiredDescriptive}
-                      onChange={(e) => {
-                        const value = Number(e.target.value);
-                        if (value > questions.totalDescriptive) {
-                          updateState({
-                            message: `Cannot set desired Descriptive questions to ${value}. Only ${questions.totalDescriptive} valid Descriptive questions available.`,
-                            desiredDescriptive: questions.totalDescriptive,
-                          });
-                        } else {
-                          updateState({ desiredDescriptive: value });
-                        }
-                      }}
-                      placeholder="Desired Descriptive for Test"
-                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      min="1"
-                    />
-                  </div>
-                  <div className="flex justify-between space-x-4">
-                    <button
-                      onClick={handleCreateTest}
-                      disabled={desiredMCQs < 1 || desiredDescriptive < 1 || desiredMCQs > questions.totalMCQs || desiredDescriptive > questions.totalDescriptive}
-                      className="flex-1 bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-                    >
-                      <FaCheckSquare />
-                      <span>Create Test</span>
-                    </button>
-                    <button
-                      onClick={handleViewResults}
-                      className="flex-1 bg-gray-600 text-white p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 flex items-center justify-center space-x-2"
-                    >
-                      <FaTrophy />
-                      <span>View Results</span>
-                    </button>
-                    <button
-                      onClick={() => navigate('/profile')}
-                      className="flex-1 bg-purple-600 text-white p-2 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 flex items-center justify-center space-x-2"
-                    >
-                      <FaUser />
-                      <span>View Profile</span>
-                    </button>
-                  </div>
-                </div>
-              )}
+              <div className="flex justify-between space-x-4">
+                <button
+                  onClick={handleViewResults}
+                  className="flex-1 bg-gray-600 text-white p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 flex items-center justify-center space-x-2"
+                >
+                  <FaTrophy />
+                  <span>View Results</span>
+                </button>
+                <button
+                  onClick={() => navigate('/profile')}
+                  className="flex-1 bg-purple-600 text-white p-2 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 flex items-center justify-center space-x-2"
+                >
+                  <FaUser />
+                  <span>View Profile</span>
+                </button>
+              </div>
             </div>
           )}
 
