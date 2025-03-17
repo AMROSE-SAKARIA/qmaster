@@ -38,9 +38,7 @@ function QuestionPool({ token }) {
           setDesiredMCQs(totalMCQs);
         }
         if (totalDescriptive < desiredDescriptive) {
-          setMessage(prev => prev
-            ? `${prev} | Only ${totalDescriptive} valid Descriptive questions available, but ${desiredDescriptive} requested.`
-            : `Only ${totalDescriptive} valid Descriptive questions available, but ${desiredDescriptive} requested.`);
+          
           setDesiredDescriptive(totalDescriptive);
         } else {
           setMessage('Questions fetched successfully');
@@ -177,7 +175,7 @@ function QuestionPool({ token }) {
                             key={i}
                             className={q.correctAnswer === opt ? 'text-green-600' : 'text-gray-800'}
                           >
-                            {i + 1}. {opt} {q.correctAnswer === opt && '(Correct)'}
+                            {opt} {q.correctAnswer === opt && '(Correct)'}
                           </li>
                         ))}
                       </ul>

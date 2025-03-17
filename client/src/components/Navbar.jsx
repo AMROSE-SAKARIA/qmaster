@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-
+import logo from "../assets/logo.png";
 function Navbar({ token, setToken, setRole, role, tokenId }) {
   const navigate = useNavigate();
 
@@ -16,9 +16,10 @@ function Navbar({ token, setToken, setRole, role, tokenId }) {
 
   return (
     <nav className="bg-blue-800 text-white p-4">
-      <div className="container mx-auto flex justify-between items-center">
+      <div className="container mx-auto flex items-center">
+      <img src={logo} alt="logo" className='h-16 w-auto' />
         <Link to="/" className="text-xl font-bold">QMaster</Link>
-        <div className="flex space-x-6 text-lg font-medium">
+        <div className="flex space-x-6 text-lg font-medium ml-auto">
           <Link to="/about" className="hover:underline">About</Link>
           {token ? (
             <>
