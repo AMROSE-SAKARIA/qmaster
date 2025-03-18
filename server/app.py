@@ -920,8 +920,7 @@ def debug_password():
         logger.error(f"Error during password comparison: {e}")
         return jsonify({"error": f"Password comparison failed: {e}"}), 500
     return jsonify({"generatedHash": hashed, "match": match}), 200
-
+app.json_encoder = mongo_to_json  #
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
-    app.json_encoder = mongo_to_json
     app.run(debug=True, host='0.0.0.0', port=port)
