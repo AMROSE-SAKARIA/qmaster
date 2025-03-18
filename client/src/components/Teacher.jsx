@@ -95,7 +95,7 @@ function Teacher({ token, role, updateLatestToken }) {
     if (requestId && isPolling) {
       pollingInterval = setInterval(async () => {
         try {
-          const res = await axios.get(`http://localhost:5000/api/token-status/${requestId}`, {
+          const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/token-status/${requestId}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           const { status, token: newToken, error } = res.data;
@@ -168,7 +168,7 @@ function Teacher({ token, role, updateLatestToken }) {
     formData.append('descriptiveMarks', descriptiveMarks);
 
     try {
-      const res = await axios.post('http://localhost:5000/api/upload-content', formData, {
+      const res = await axios.post('${import.meta.env.VITE_API_URL}/api/upload-content', formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',

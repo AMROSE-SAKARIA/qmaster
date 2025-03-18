@@ -18,7 +18,7 @@ function Profile({ token, role, setToken, setRole }) {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/profile', {
+        const res = await axios.get('${import.meta.env.VITE_API_URL}/api/profile', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         setProfile(res.data);
@@ -33,7 +33,7 @@ function Profile({ token, role, setToken, setRole }) {
 
   const requestOtp = async (action) => {
     try {
-      const res = await axios.post('http://localhost:5000/api/request-profile-otp', { action }, {
+      const res = await axios.post('${import.meta.env.VITE_API_URL}/api/request-profile-otp', { action }, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       setMessage(res.data.message);
@@ -51,7 +51,7 @@ function Profile({ token, role, setToken, setRole }) {
       return;
     }
     try {
-      const res = await axios.put('http://localhost:5000/api/profile/update', {
+      const res = await axios.put('${import.meta.env.VITE_API_URL}/api/profile/update', {
         realName: newRealName,
         email: newEmail,
         password: newPassword || undefined,
@@ -64,7 +64,7 @@ function Profile({ token, role, setToken, setRole }) {
       setIsOtpSent(false);
       setOtp('');
       setOtpSentFor(null);
-      const updatedProfile = await axios.get('http://localhost:5000/api/profile', {
+      const updatedProfile = await axios.get('${import.meta.env.VITE_API_URL}/api/profile', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       setProfile(updatedProfile.data);
@@ -79,7 +79,7 @@ function Profile({ token, role, setToken, setRole }) {
       return;
     }
     try {
-      const res = await axios.delete('http://localhost:5000/api/profile/delete', {
+      const res = await axios.delete('${import.meta.env.VITE_API_URL}/api/profile/delete', {
         headers: { 'Authorization': `Bearer ${token}` },
         data: { otp }, // Include OTP in the request
       });

@@ -27,7 +27,7 @@ function QuestionPool({ token }) {
       setLoading(true);
       setError('');
       try {
-        const res = await axios.get(`http://localhost:5000/api/teacher/questions/${tokenId}`, {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/teacher/questions/${tokenId}`, {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         const { mcqs, descriptive, totalMCQs, totalDescriptive, subject: fetchedSubject } = res.data;
@@ -67,7 +67,7 @@ function QuestionPool({ token }) {
     }
 
     try {
-      const res = await axios.post('http://localhost:5000/api/teacher/create-test', {
+      const res = await axios.post('${import.meta.env.VITE_API_URL}/api/teacher/create-test', {
         token: tokenId,
         desiredMCQs,
         desiredDescriptive,

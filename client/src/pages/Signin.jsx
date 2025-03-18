@@ -18,7 +18,7 @@ function Signin({ setToken, setRole }) {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:5000/api/login', {
+      const res = await axios.post('${import.meta.env.VITE_API_URL}/api/login', {
         username: identifier, // Send identifier as username (backend handles email/username)
         password,
       });
@@ -39,7 +39,7 @@ function Signin({ setToken, setRole }) {
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:5000/api/forgot-password', {
+      const res = await axios.post('${import.meta.env.VITE_API_URL}/api/forgot-password', {
         username: forgotUsername,
       });
       setMessage(res.data.message);
@@ -56,7 +56,7 @@ function Signin({ setToken, setRole }) {
       return;
     }
     try {
-      const res = await axios.post('http://localhost:5000/api/reset-password', {
+      const res = await axios.post('${import.meta.env.VITE_API_URL}/api/reset-password', {
         username: forgotUsername,
         otp: forgotOtp,
         newPassword,

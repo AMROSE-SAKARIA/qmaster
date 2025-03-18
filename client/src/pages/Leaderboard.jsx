@@ -11,7 +11,7 @@ function Leaderboard({ token, role }) {
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/leaderboard/${testToken}`, {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/leaderboard/${testToken}`, {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         setLeaderboard(res.data);

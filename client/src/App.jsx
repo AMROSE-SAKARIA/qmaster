@@ -25,7 +25,7 @@ function App() {
     const fetchProfile = async () => {
       if (!token) return;
       try {
-        const res = await axios.get('http://localhost:5000/api/profile', {
+        const res = await axios.get('${import.meta.env.VITE_API_URL}/api/profile', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setLatestToken(res.data.latestToken || '');

@@ -16,7 +16,7 @@ function QuestionHistory({ token, role }) {
     }
     const fetchQuestionHistory = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/teacher/question-history/${tokenId}`, {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/teacher/question-history/${tokenId}`, {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         setQuestionHistory(res.data.history);

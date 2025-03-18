@@ -16,7 +16,7 @@ function Student({ token, role, onLogout }) {
 
   const handleJoinTest = async () => {
     try {
-      const res = await axios.post('http://localhost:5000/api/student/join', { token: tokenId }, {
+      const res = await axios.post('${import.meta.env.VITE_API_URL}/api/student/join', { token: tokenId }, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       setQuestions(res.data);
@@ -32,7 +32,7 @@ function Student({ token, role, onLogout }) {
 
   const handleSubmitTest = async () => {
     try {
-      const res = await axios.post('http://localhost:5000/api/student/submit', {
+      const res = await axios.post('${import.meta.env.VITE_API_URL}/api/student/submit', {
         token: tokenId,
         answers,
       }, {

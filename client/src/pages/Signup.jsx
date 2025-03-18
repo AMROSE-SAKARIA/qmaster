@@ -22,7 +22,7 @@ function Signup() {
       return;
     }
     try {
-      const res = await axios.post('http://localhost:5000/api/register', {
+      const res = await axios.post('${import.meta.env.VITE_API_URL}/api/register', {
         username,
         password,
         realName,
@@ -39,7 +39,7 @@ function Signup() {
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:5000/api/verify-otp', {
+      const res = await axios.post('${import.meta.env.VITE_API_URL}/api/verify-otp', {
         username,
         password,
         realName,

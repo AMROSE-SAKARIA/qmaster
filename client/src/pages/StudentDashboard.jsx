@@ -19,7 +19,7 @@ function StudentDashboard({ token, role }) {
     e.preventDefault();
     try {
       const res = await axios.post(
-        'http://localhost:5000/api/student/join',
+        '${import.meta.env.VITE_API_URL}/api/student/join',
         { token: testToken },
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
@@ -45,7 +45,7 @@ function StudentDashboard({ token, role }) {
   const handleSubmitTest = async () => {
     try {
       const res = await axios.post(
-        'http://localhost:5000/api/student/submit',
+        '${import.meta.env.VITE_API_URL}/api/student/submit',
         { token: testToken, answers },
         { headers: { 'Authorization': `Bearer ${token}` } }
       );

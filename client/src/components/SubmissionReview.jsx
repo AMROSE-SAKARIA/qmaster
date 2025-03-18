@@ -16,7 +16,7 @@ function SubmissionReview({ token, role }) {
 
     const fetchSubmissions = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/teacher/results/${tokenId}`, {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/teacher/results/${tokenId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setSubmissions(res.data.submissions);

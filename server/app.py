@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173"], "supports_credentials": True}})
+CORS(app, resources={r"/api/*": {"origins": ["http://localhost:59726"], "supports_credentials": True}})
 
 # MongoDB Connection
 try:
