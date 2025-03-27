@@ -921,6 +921,6 @@ def debug_password():
         return jsonify({"error": f"Password comparison failed: {e}"}), 500
     return jsonify({"generatedHash": hashed, "match": match}), 200
 app.json_encoder = mongo_to_json  #
-if __name__ == '__main__':
-    port = int(os.getenv('PORT', 5000))
-    app.run(debug=True, host='0.0.0.0', port=port)
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)  # Remove debug=True
